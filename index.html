@@ -1,0 +1,1184 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pizzaria Combinatória</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Fredoka:wght@500;600;700&family=Patrick+Hand&display=swap">
+<style>
+
+/* Layout: jogo de cartoon sobre toalha xadrez de cantina. Painéis com contorno grosso e sombra dura; HUD de madeira no topo; contas resolvidas num quadro-negro. Visual único, de propósito. */
+:root{
+  --ink:#2b1a12;
+  --toalha:#fbeee0;
+  --xadrez:rgba(214,52,38,.5);
+  --creme:#fff7e3;
+  --creme-2:#f6e6c4;
+  --madeira:#9c5a2a;
+  --madeira-2:#6e3b17;
+  --vermelho:#e8432e;
+  --vermelho-d:#a92616;
+  --amarelo:#ffcc33;
+  --amarelo-d:#d99a00;
+  --verde:#46b84c;
+  --verde-d:#2a7f2f;
+  --azul:#3d8fe0;
+  --roxo:#8d5bd6;
+  --quadro:#2f4a3a;
+  --giz:#f4f1e8;
+  --f-display:"Lilita One","Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+  --f-body:"Fredoka","Trebuchet MS","Segoe UI",sans-serif;
+  --f-giz:"Patrick Hand","Comic Sans MS","Segoe Print",cursive;
+  color-scheme:light;
+}
+html,body{height:100%}
+body{background-color:var(--toalha);color:var(--ink);font-family:var(--f-body);font-weight:500;font-size:clamp(16px,1vw + 10px,20px);line-height:1.4;
+  background-image:linear-gradient(90deg,var(--xadrez) 50%,transparent 50%),linear-gradient(var(--xadrez) 50%,transparent 50%);background-size:72px 72px;background-attachment:fixed}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 55%,rgba(60,20,10,.35) 100%);z-index:0}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:4px solid var(--azul);outline-offset:3px}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;line-height:1.05;text-wrap:balance}
+p{margin:0}
+.wrap{position:relative;z-index:1;max-width:1140px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 48px}
+
+/* Peças básicas */
+.panel{background:var(--creme);border:4px solid var(--ink);border-radius:24px;box-shadow:0 8px 0 var(--ink);padding:22px}
+.btn{font-family:var(--f-display);font-size:1.25em;letter-spacing:.03em;text-transform:uppercase;padding:.55em 1.3em;border:4px solid var(--ink);border-radius:18px;background:var(--amarelo);box-shadow:0 6px 0 var(--ink);transition:transform .07s,box-shadow .07s;color:var(--ink)}
+.btn:hover{filter:brightness(1.05)}
+.btn:active{transform:translateY(6px);box-shadow:0 0 0 var(--ink)}
+.btn.red{background:var(--vermelho);color:#fff}
+.btn.green{background:var(--verde);color:#fff}
+.btn.white{background:#fff}
+.btn.sm{font-size:.95em;padding:.4em .9em;border-width:3px;box-shadow:0 4px 0 var(--ink);border-radius:14px}
+.btn.sm:active{transform:translateY(4px)}
+.btn[disabled]{filter:grayscale(1);opacity:.55;cursor:not-allowed;transform:none;box-shadow:0 6px 0 var(--ink)}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.center{justify-content:center}
+.ribbon{display:inline-block;font-family:var(--f-display);font-size:1.3em;color:#fff;background:var(--vermelho);border:4px solid var(--ink);padding:.15em .9em;border-radius:12px;box-shadow:0 5px 0 var(--ink);transform:rotate(-2deg)}
+
+/* HUD */
+.hud{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--madeira);background-image:repeating-linear-gradient(90deg,transparent 0 120px,rgba(0,0,0,.08) 120px 124px);border:4px solid var(--ink);border-radius:20px;box-shadow:0 6px 0 var(--ink);padding:8px 12px;margin-bottom:24px}
+.brand{font-family:var(--f-display);font-size:1.3em;background:none;border:0;padding:0 4px;color:#fff;-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;display:flex;align-items:center;gap:6px}
+.score{display:flex;gap:8px;flex-wrap:wrap;flex:1;justify-content:center;min-width:0}
+.sc{display:flex;align-items:center;gap:8px;background:var(--creme);border:3px solid var(--ink);border-radius:999px;padding:2px 12px 2px 3px;font-weight:700;font-size:.85em;transition:transform .2s}
+.tav{width:1.9em;height:1.9em;border-radius:50%;display:grid;place-items:center;border:3px solid var(--ink);font-size:.95em;flex:none}
+.sc b{font-family:var(--f-display);font-weight:400;font-size:1.35em;font-variant-numeric:tabular-nums}
+.sc.on{transform:scale(1.08);background:var(--amarelo)}
+.tools{display:flex;gap:6px;margin-left:auto}
+.ib{width:42px;height:42px;border-radius:12px;background:var(--creme);border:3px solid var(--ink);box-shadow:0 3px 0 var(--ink);font-size:1.1em;display:grid;place-items:center;padding:0}
+.ib:active{transform:translateY(3px);box-shadow:none}
+
+/* Título */
+.title{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;padding-block:10px 20px}
+.logo{line-height:.9}
+.logo small{display:inline-block;font-family:var(--f-display);font-size:clamp(1.6em,3.6vw,2.6em);color:var(--amarelo);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;text-shadow:0 5px 0 var(--ink);transform:rotate(-3deg)}
+.logo h1{font-size:clamp(3em,8.5vw,6.4em);color:#fff;-webkit-text-stroke:5px var(--ink);paint-order:stroke fill;text-shadow:0 8px 0 var(--ink);letter-spacing:.01em}
+.logo h1 span{color:var(--vermelho)}
+.tag{margin-top:20px;max-width:30em;font-size:1.1em;font-weight:600;background:var(--creme);border:3px solid var(--ink);border-radius:16px;padding:10px 14px}
+.title .row{margin-top:26px}
+.bigpizza{width:clamp(200px,30vw,360px);animation:quica 2.4s ease-in-out infinite}
+.bigpizza svg{width:100%;height:auto;display:block;filter:drop-shadow(0 10px 0 rgba(43,26,18,.9));animation:gira 30s linear infinite}
+@keyframes quica{50%{transform:translateY(-14px)}}
+@keyframes gira{to{transform:rotate(360deg)}}
+.sign{display:inline-flex;align-items:center;gap:12px;margin-top:22px;background:var(--quadro);color:var(--giz);font-family:var(--f-giz);font-size:1.5em;border:5px solid var(--madeira);outline:3px solid var(--ink);border-radius:10px;padding:6px 20px;transform:rotate(1.5deg)}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1.1}
+.frac>span:first-child{border-bottom:2px solid currentColor;padding:0 .3em}
+.frac>span:last-child{padding:0 .3em}
+
+/* Mapa de fases */
+.map{display:flex;align-items:center;justify-content:center;margin:6px 0 22px;overflow-x:auto;padding:6px 4px 12px}
+.node{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;width:92px;text-align:center;font-weight:700;font-size:.78em}
+.node i{font-style:normal;width:60px;height:60px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-size:1.6em;border:4px solid var(--ink);box-shadow:0 5px 0 var(--ink);background:#d9cdb8;color:#7a6a58}
+.node.done i{background:var(--verde);color:#fff}
+.node.cur i{background:var(--amarelo);color:var(--ink);animation:pulsa 1.2s ease-in-out infinite}
+.node span{background:var(--creme);border:2px solid var(--ink);border-radius:8px;padding:0 6px}
+@keyframes pulsa{50%{transform:scale(1.12)}}
+.path{flex:1 1 40px;min-width:14px;max-width:70px;height:0;border-top:6px dotted var(--ink);margin-bottom:30px}
+
+/* Tutorial */
+.tbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.dots{display:flex;gap:8px}
+.dots b{width:18px;height:18px;border-radius:50%;border:3px solid var(--ink);background:#fff}
+.dots b.on{background:var(--amarelo)}
+.dots b.ok{background:var(--verde)}
+.panel h2{font-size:2em;margin-bottom:8px}
+.pair{display:flex;gap:24px;justify-content:center;align-items:center;flex-wrap:wrap;margin:18px 0}
+.pz{display:flex;flex-direction:column;align-items:center;gap:8px;font-weight:700}
+.pz svg{width:min(200px,36vw);height:auto;filter:drop-shadow(0 6px 0 var(--ink))}
+.vs{font-family:var(--f-display);font-size:3em;color:var(--vermelho);-webkit-text-stroke:2px var(--ink);paint-order:stroke fill}
+.build{display:grid;grid-template-columns:1fr auto;gap:26px;align-items:center;margin-top:14px}
+.build>*{min-width:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px}
+.tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px 8px;border:4px solid var(--ink);border-radius:18px;background:#fff;box-shadow:0 5px 0 var(--ink);font-weight:700;font-size:.85em}
+.tile .em{font-size:2.3em;line-height:1.1}
+button.tile:active{transform:translateY(5px);box-shadow:none}
+.tile.sel{background:var(--amarelo);transform:translateY(-4px);box-shadow:0 9px 0 var(--ink)}
+.tile.must{background:#d9f4d6}
+.tile.must::after{content:"✓";position:absolute;top:-12px;right:-10px;width:30px;height:30px;border-radius:50%;background:var(--verde);color:#fff;border:3px solid var(--ink);display:grid;place-items:center;font-family:var(--f-display);font-size:1.1em}
+.tile.out{background:#f3d6cf;color:#8f3b2a}
+.tile.out .em{opacity:.35}
+.tile.out::after{content:"✕";position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-display);font-size:3.2em;color:var(--vermelho);-webkit-text-stroke:2px var(--ink);paint-order:stroke fill}
+.board{display:flex;flex-direction:column;align-items:center;gap:12px}
+.board .peel{width:min(270px,70vw);aspect-ratio:1;max-width:100%;border-radius:50%;background:radial-gradient(circle,#c98a4b 0 62%,#b17234 63%);border:4px solid var(--ink);box-shadow:0 8px 0 var(--ink);display:grid;place-items:center}
+.board .peel svg{width:88%;height:auto}
+.counter{font-family:var(--f-display);font-size:2em;color:#fff;-webkit-text-stroke:3px var(--ink);paint-order:stroke fill}
+.served{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;min-height:96px;padding:10px;border:3px dashed var(--ink);border-radius:16px;background:var(--creme-2)}
+.mini{display:flex;flex-direction:column;align-items:center;font-size:.7em;font-weight:700;width:86px;text-align:center;animation:pop .35s cubic-bezier(.3,1.6,.5,1) both}
+.mini svg{width:66px;height:66px}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+.chalk{background:var(--quadro);color:var(--giz);font-family:var(--f-giz);font-size:1.3em;border:6px solid var(--madeira);outline:3px solid var(--ink);border-radius:12px;padding:14px 18px;overflow-x:auto}
+.chalk div{white-space:pre;line-height:1.45}
+.chalk .res{color:var(--amarelo);font-size:1.15em}
+.chalk p{white-space:normal}
+.chalk p+p{margin-top:4px}
+.fsteps{display:grid;gap:12px;margin:16px 0}
+.fstep{display:flex;gap:14px;align-items:center;animation:pop .3s ease both}
+.fstep .n{flex:none;width:44px;height:44px;border-radius:50%;background:var(--amarelo);border:3px solid var(--ink);display:grid;place-items:center;font-family:var(--f-display);font-size:1.3em;color:var(--ink)}
+.fstep .chalk{flex:1;min-width:0}
+.msg{margin-top:16px;padding:14px 18px;border:4px solid var(--ink);border-radius:18px;font-weight:600}
+.msg h3{font-size:1.6em;margin-bottom:4px}
+.msg.good{background:#d9f4d6}
+.msg.good h3{color:var(--verde-d)}
+.msg.bad{background:#f8d9d1}
+.msg.bad h3{color:var(--vermelho-d)}
+
+/* Pergunta */
+.qtop{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between;margin-bottom:18px}
+.turn{font-family:var(--f-display);font-size:1.5em;padding:.2em .9em;border:4px solid var(--ink);border-radius:14px;box-shadow:0 5px 0 var(--ink);color:#fff;-webkit-text-stroke:1px var(--ink);paint-order:stroke fill}
+.clock{--p:100;width:74px;height:74px;border-radius:50%;border:4px solid var(--ink);box-shadow:0 5px 0 var(--ink);background:conic-gradient(var(--verde) calc(var(--p)*1%),#fff 0);display:grid;place-items:center}
+.clock.low{background:conic-gradient(var(--vermelho) calc(var(--p)*1%),#fff 0);animation:treme .3s linear infinite}
+.clock span{width:50px;height:50px;border-radius:50%;background:var(--creme);border:3px solid var(--ink);display:grid;place-items:center;font-family:var(--f-display);font-size:1.25em;font-variant-numeric:tabular-nums}
+@keyframes treme{25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
+.qgrid{display:grid;grid-template-columns:1.2fr 1fr;gap:26px;align-items:start}
+.qgrid>*{min-width:0}
+.client{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:start}
+.avatar{width:96px;height:96px;border-radius:50%;background:var(--amarelo);border:4px solid var(--ink);box-shadow:0 5px 0 var(--ink);display:grid;place-items:center;font-size:3.4em;animation:chega .45s cubic-bezier(.3,1.5,.5,1) both}
+@keyframes chega{from{transform:translateX(-60px) scale(.6);opacity:.2}}
+.who{text-align:center;font-family:var(--f-display);margin-top:8px;font-size:.95em;background:var(--creme);border:2px solid var(--ink);border-radius:8px;padding:0 6px}
+.bubble{position:relative;background:#fff;border:4px solid var(--ink);border-radius:22px;padding:16px 20px;box-shadow:0 6px 0 var(--ink);font-size:1.2em;font-weight:600;line-height:1.35;animation:pop .35s .15s cubic-bezier(.3,1.5,.5,1) both}
+.bubble::before{content:"";position:absolute;left:-20px;top:26px;border:14px solid transparent;border-right:20px solid var(--ink);border-left:0}
+.bubble::after{content:"";position:absolute;left:-13px;top:30px;border:10px solid transparent;border-right:15px solid #fff;border-left:0}
+.bubble strong{background:var(--amarelo);padding:0 .2em;border-radius:6px}
+.menu{margin-top:20px;background:var(--creme);border:4px solid var(--ink);border-radius:20px;padding:12px 14px 16px;box-shadow:0 6px 0 var(--ink)}
+.menu h3{font-size:1.15em;margin-bottom:10px}
+.menu .tiles{grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:10px}
+.menu .tile{font-size:.72em;padding:6px 4px;border-width:3px;box-shadow:0 4px 0 var(--ink)}
+.menu .tile .em{font-size:2em}
+.screen{background:#1d2b22;color:#b8ff9e;font-family:var(--f-display);font-size:2.8em;text-align:center;border:4px solid var(--ink);border-radius:14px;padding:.1em .3em;letter-spacing:.08em;font-variant-numeric:tabular-nums;width:100%;box-shadow:inset 0 4px 0 rgba(0,0,0,.4)}
+.screen::placeholder{color:#4f6b54}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.pad button{font-family:var(--f-display);font-size:1.5em;padding:.25em 0;border:4px solid var(--ink);border-radius:14px;background:#fff;box-shadow:0 5px 0 var(--ink)}
+.pad button:active{transform:translateY(5px);box-shadow:none}
+.pad .del{background:var(--vermelho);color:#fff}
+.pad .ok{background:var(--verde);color:#fff}
+.hint{margin-top:14px;display:flex;gap:10px;align-items:flex-start;background:#fff3c2;border:3px solid var(--ink);border-radius:14px;padding:10px 14px;font-weight:600}
+.hint .em{font-size:1.6em;line-height:1}
+.opts{display:grid;gap:12px}
+.opt{font-family:var(--f-display);font-size:1.2em;text-align:left;padding:.6em 1em;border:4px solid var(--ink);border-radius:16px;box-shadow:0 6px 0 var(--ink);color:#fff;-webkit-text-stroke:1px var(--ink);paint-order:stroke fill;display:flex;gap:12px;align-items:center}
+.opt .k{flex:none;width:1.6em;height:1.6em;border-radius:8px;background:#fff;color:var(--ink);-webkit-text-stroke:0;display:grid;place-items:center;border:3px solid var(--ink)}
+.opt:active{transform:translateY(6px);box-shadow:none}
+.opt.c0{background:var(--vermelho)}.opt.c1{background:var(--azul)}.opt.c2{background:var(--roxo)}
+.opt.right{background:var(--verde)!important}
+.opt.wrong{filter:grayscale(.85);opacity:.6}
+.res-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.res-head h3{font-size:1.8em}
+.res-head .pts{font-family:var(--f-display);font-size:2.4em;-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;color:#fff}
+.good .pts{color:var(--verde)}
+.bad .pts{color:#ddd}
+
+/* Efeitos */
+.stamp{position:fixed;left:50%;top:42%;z-index:50;pointer-events:none;font-family:var(--f-display);font-size:clamp(3em,11vw,8em);color:#fff;-webkit-text-stroke:6px var(--ink);paint-order:stroke fill;text-shadow:0 10px 0 var(--ink);animation:carimbo 1.1s cubic-bezier(.2,1.4,.4,1) forwards;white-space:nowrap;opacity:0}
+.stamp.good{color:var(--verde)}
+.stamp.bad{color:var(--vermelho)}
+@keyframes carimbo{0%{transform:translate(-50%,-50%) scale(3) rotate(-12deg);opacity:0}25%{transform:translate(-50%,-50%) scale(1) rotate(-6deg);opacity:1}80%{opacity:1}100%{transform:translate(-50%,-60%) scale(1) rotate(-6deg);opacity:0}}
+.confetti{position:fixed;top:-60px;z-index:49;pointer-events:none;font-size:2.2em;animation:cai linear forwards}
+@keyframes cai{to{transform:translateY(115vh) rotate(720deg)}}
+.shake{animation:sacode .45s}
+@keyframes sacode{20%{transform:translateX(-12px)}40%{transform:translateX(12px)}60%{transform:translateX(-8px)}80%{transform:translateX(6px)}}
+.plus{position:fixed;z-index:51;pointer-events:none;font-family:var(--f-display);font-size:2em;color:var(--amarelo);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;animation:sobe 1.2s ease-out forwards}
+@keyframes sobe{to{transform:translateY(-70px);opacity:0}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.stamp{opacity:1;transform:translate(-50%,-50%) rotate(-6deg)}}
+
+/* Configuração */
+.teams{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.tcard{border:4px solid var(--ink);border-radius:18px;box-shadow:0 5px 0 var(--ink);padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.tcard .tav{width:64px;height:64px;border-width:4px;font-size:2em;background:#fff}
+.tcard input{width:100%;font:inherit;font-weight:700;text-align:center;padding:.4em;border:3px solid var(--ink);border-radius:12px;background:#fff;color:var(--ink)}
+.seg{display:flex;gap:10px;flex-wrap:wrap}
+.seg button{font-family:var(--f-display);font-size:1.1em;padding:.35em 1em;border:4px solid var(--ink);border-radius:14px;background:#fff;box-shadow:0 4px 0 var(--ink)}
+.seg button.on{background:var(--amarelo);transform:translateY(4px);box-shadow:none}
+.opt-l{font-family:var(--f-display);font-size:1.2em;margin-bottom:8px}
+
+/* Intro de fase */
+.lvl{text-align:center}
+.lvl .big{font-family:var(--f-display);font-size:clamp(3em,9vw,6em);line-height:1;color:#fff;-webkit-text-stroke:5px var(--ink);paint-order:stroke fill;text-shadow:0 8px 0 var(--ink);animation:pop .5s cubic-bezier(.3,1.6,.5,1) both}
+.lvl .sub{display:inline-block;font-family:var(--f-display);font-size:1.6em;margin-top:12px;background:var(--creme);border:4px solid var(--ink);border-radius:14px;padding:.1em .8em;box-shadow:0 5px 0 var(--ink)}
+.lvl .desc{max-width:36em;margin:18px auto 0;font-size:1.1em;font-weight:600;background:var(--creme);border:3px solid var(--ink);border-radius:16px;padding:10px 16px}
+.lvl .chalk{max-width:640px;margin:18px auto 0;text-align:left}
+.lvl .row{margin-top:24px}
+
+/* Final */
+.ftab{display:grid;gap:12px;margin-top:12px}
+.frow{display:grid;grid-template-columns:minmax(120px,1fr) 3fr;gap:10px;align-items:center}
+.frow .nm{display:flex;align-items:center;gap:8px;font-family:var(--f-display);font-size:1.05em;min-width:0}
+.fopts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.fopts button{font-family:var(--f-display);font-size:.9em;padding:.5em .2em;border:3px solid var(--ink);border-radius:12px;background:#fff;box-shadow:0 4px 0 var(--ink);font-variant-numeric:tabular-nums}
+.fopts button.on{background:var(--amarelo);transform:translateY(4px);box-shadow:none}
+.fopts button.right{background:var(--verde);color:#fff}
+.fopts button.wrong{background:#f3d6cf}
+.vol{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;font-family:var(--f-display);font-size:.8em;text-align:center}
+.vol span{background:#fff;border:2px solid var(--ink);border-radius:6px;color:var(--vermelho-d)}
+
+/* Pódio */
+.podium{display:flex;justify-content:center;align-items:flex-end;gap:12px;margin:26px 0 0}
+.pcol{display:flex;flex-direction:column;align-items:center;gap:8px;width:min(180px,30%)}
+.pcol .nm{font-family:var(--f-display);font-size:1.1em;text-align:center;line-height:1.1;background:var(--creme);border:2px solid var(--ink);border-radius:8px;padding:2px 6px}
+.pcol .tav{width:64px;height:64px;border-width:4px;font-size:2em;box-shadow:0 4px 0 var(--ink)}
+.block{width:100%;border:4px solid var(--ink);border-bottom:0;border-radius:14px 14px 0 0;display:flex;flex-direction:column;align-items:center;padding-top:10px;font-family:var(--f-display);color:#fff;-webkit-text-stroke:2px var(--ink);paint-order:stroke fill}
+.block .pos{font-size:2.6em;line-height:1}
+.block .pt{font-size:1.3em}
+.base-line{height:10px;background:var(--ink);border-radius:4px;margin-bottom:20px}
+.others{display:grid;gap:8px;max-width:420px;margin:0 auto 20px}
+.others div{display:flex;justify-content:space-between;background:#fff;border:3px solid var(--ink);border-radius:12px;padding:6px 14px;font-family:var(--f-display)}
+
+/* Manual */
+.manual{max-width:820px;margin:0 auto}
+.manual .cover{text-align:center;margin-bottom:10px}
+.manual .cover h1{font-size:clamp(2.2em,6vw,3.6em);color:#fff;-webkit-text-stroke:4px var(--ink);paint-order:stroke fill;text-shadow:0 6px 0 var(--ink)}
+.manual .cover p{font-weight:700;margin-top:6px}
+.manual section{margin-top:26px}
+.manual h2{font-size:1.5em;margin-bottom:10px;display:flex;gap:12px;align-items:center}
+.manual h2 .k{flex:none;width:38px;height:38px;border-radius:50%;background:var(--vermelho);color:#fff;border:3px solid var(--ink);display:grid;place-items:center;font-size:.8em}
+.manual p,.manual li{max-width:65ch}
+.manual section>p+p{margin-top:10px}
+.manual ul,.manual ol{padding-left:1.3em;display:grid;gap:6px;margin:8px 0 0}
+.tbl{overflow-x:auto;margin-top:10px}
+.tbl table{border-collapse:separate;border-spacing:0;width:100%;min-width:380px;border:3px solid var(--ink);border-radius:14px;overflow:hidden;background:#fff}
+.tbl th,.tbl td{text-align:left;padding:8px 14px;border-bottom:2px solid var(--creme-2)}
+.tbl th{background:var(--amarelo);font-family:var(--f-display);font-weight:400}
+.tbl td:last-child{font-family:var(--f-display);font-variant-numeric:tabular-nums}
+.manual .chalk{margin-top:10px}
+
+@media (max-width:820px){
+  .title,.build,.qgrid{grid-template-columns:1fr}
+  .bigpizza{order:-1;justify-self:center}
+  .frow{grid-template-columns:1fr}
+  .fopts{grid-template-columns:repeat(2,1fr)}
+  .avatar{width:72px;height:72px;font-size:2.5em}
+}
+@media (max-width:480px){
+  .client{grid-template-columns:1fr}
+  .bubble::before,.bubble::after{display:none}
+  .avatar{margin:0 auto}
+  .brand{font-size:1.05em}
+}
+
+/* ---------- Versão online ---------- */
+body{margin:0}
+.banner{background:#fff3c2;border:3px solid var(--ink);border-radius:14px;padding:8px 14px;margin-bottom:16px;font-weight:600;font-size:.9em}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:60;background:var(--ink);color:#fff;padding:10px 18px;border-radius:12px;font-weight:600;max-width:90vw;text-align:center}
+.lobby{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:24px;align-items:start}
+.joincard{text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
+.qr{background:#fff;border:4px solid var(--ink);border-radius:16px;padding:12px;width:248px;height:248px;max-width:100%;display:grid;place-items:center;font-weight:700}
+.qr img,.qr canvas{display:block;max-width:100%}
+.url{font-weight:700;word-break:break-all;background:#fff;border:2px solid var(--ink);border-radius:8px;padding:2px 8px;font-size:.85em}
+.code{font-family:var(--f-display);font-size:4.2em;letter-spacing:.15em;color:#fff;-webkit-text-stroke:4px var(--ink);paint-order:stroke fill;text-shadow:0 6px 0 var(--ink);line-height:1}
+.tlist{display:grid;gap:10px;margin:12px 0 20px}
+.trow{display:flex;align-items:center;gap:10px;background:#fff;border:3px solid var(--ink);border-radius:14px;padding:6px 10px;font-weight:700;animation:pop .3s both}
+.trow .nm{flex:1;min-width:0;overflow-wrap:anywhere}
+.trow .sc-n{font-family:var(--f-display);font-size:1.3em;font-variant-numeric:tabular-nums;min-width:2.4em;text-align:right}
+.mini-b{border:3px solid var(--ink);background:#fff;border-radius:10px;min-width:38px;height:36px;padding:0 8px;font-family:var(--f-display);font-size:.95em;box-shadow:0 3px 0 var(--ink)}
+.mini-b:active{transform:translateY(3px);box-shadow:none}
+.mini-b.x{background:#f3d6cf}
+.empty{padding:16px;border:3px dashed var(--ink);border-radius:14px;text-align:center;font-weight:600;background:var(--creme-2)}
+.astat{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:14px}
+.achip{display:flex;align-items:center;gap:8px;border:3px solid var(--ink);border-radius:14px;padding:8px 10px;background:#e9e2d6;font-weight:700;font-size:.9em;min-width:0}
+.achip span:last-child{min-width:0;overflow-wrap:anywhere}
+.achip.done{background:#d9f4d6;animation:pop .3s both}
+.achip small{display:block;font-weight:600;font-size:.8em;opacity:.8}
+.bigcount{font-family:var(--f-display);font-size:2.4em;line-height:1}
+.rrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;background:#fff;border:3px solid var(--ink);border-radius:14px;padding:8px 10px}
+.rrow.ok{background:#d9f4d6}.rrow.no{background:#f8e3de}
+.rrow .nm{font-weight:700;overflow-wrap:anywhere}
+.rrow .nm small{display:block;font-weight:600;opacity:.8}
+.rrow .p{font-family:var(--f-display);font-size:1.5em}
+.opt.c3{background:var(--amarelo-d)}
+div.opt{cursor:default}
+.player{max-width:560px;margin:0 auto}
+.wait{text-align:center;display:grid;gap:16px;justify-items:center}
+.wait .bigpizza{width:170px}
+.field{display:grid;gap:6px;text-align:left;font-family:var(--f-display);font-size:1.1em}
+.field input{font-family:var(--f-body);font-weight:700;font-size:1.1em;padding:.5em .7em;border:4px solid var(--ink);border-radius:14px;background:#fff;color:var(--ink);width:100%}
+.field input.codein{font-family:var(--f-display);font-size:2.2em;letter-spacing:.25em;text-align:center;text-transform:uppercase}
+.err{color:var(--vermelho-d);font-weight:700;min-height:1.2em}
+.hl2{background:var(--amarelo);border:2px solid var(--ink);border-radius:8px;padding:0 .4em;font-family:var(--f-display)}
+.spin-s{width:80px;animation:gira 3s linear infinite}
+@media(max-width:480px){.bt{display:none}.sc{font-size:.78em}.sc span{white-space:nowrap}.hud{gap:8px}}
+@media(max-width:820px){.lobby{grid-template-columns:1fr}.rrow{grid-template-columns:auto minmax(0,1fr) auto}.rrow .bon{grid-column:1/-1;justify-self:start}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header class="hud">
+    <button class="brand" data-a="home" aria-label="Início">🍕 <span class="bt">Pizzaria</span></button>
+    <div class="score" id="score"></div>
+    <div class="tools">
+      <button class="ib" data-a="manual" title="Manual de instruções" aria-label="Manual de instruções">📖</button>
+      <button class="ib" data-a="sound" title="Som" aria-label="Som ligado">🔊</button>
+      <button class="ib" data-a="full" title="Tela cheia" aria-label="Tela cheia">⛶</button>
+    </div>
+  </header>
+  <div id="banner"></div>
+  <main id="stage"></main>
+</div>
+<div id="toast" class="toast" hidden></div>
+
+<script type="module">
+/* ---------- Dados ---------- */
+const FL=[
+ {id:'mus',n:'Mussarela',e:'🧀',c:'#f2c94c'},
+ {id:'tom',n:'Tomate',e:'🍅',c:'#e5533d'},
+ {id:'cal',n:'Calabresa',e:'🌭',c:'#b5442e'},
+ {id:'fra',n:'Frango',e:'🍗',c:'#d9a066'},
+ {id:'mil',n:'Milho',e:'🌽',c:'#f5d547'},
+ {id:'ceb',n:'Cebola',e:'🧅',c:'#c9a3c9'},
+ {id:'azt',n:'Azeitona',e:'🫒',c:'#6b8e3d'},
+ {id:'cog',n:'Cogumelo',e:'🍄',c:'#a67c6b'},
+ {id:'pim',n:'Pimentão',e:'🫑',c:'#4caf50'},
+ {id:'bac',n:'Bacon',e:'🥓',c:'#c0574a'},
+ {id:'bro',n:'Brócolis',e:'🥦',c:'#3f8f4f'},
+ {id:'aba',n:'Abacaxi',e:'🍍',c:'#f0b429'}
+];
+const FB=Object.fromEntries(FL.map(f=>[f.id,f]));
+const CLIENTS=[['Dona Cida','👵'],['Seu Jorge','👨‍🦳'],['Pedrinho','👦'],['Tia Rose','👩‍🦰'],['Seu Antônio','👴'],['Juliana','👩'],['Caio','🧑'],['Dona Marta','👩‍🦳'],['Lucas','🧒'],['Bia','👧'],['Fernanda','👩‍🦱'],['Gabriel','👱'],['Seu Zé','🧔'],['Vovó Nena','👵']];
+const TEAM_DEF=[['Time Margherita','#e8432e'],['Time Calabresa','#3d8fe0'],['Time Portuguesa','#46b84c'],['Time Quatro Queijos','#8d5bd6']];
+const PHASES=[
+ {name:'Pedidos Simples',pts:10,num:'1'},
+ {name:'Clientes Exigentes',pts:20,num:'2'},
+ {name:'Pizza do Avesso',pts:20,num:'3'},
+ {name:'Mega-Sena',pts:30,num:'★'}
+];
+
+/* ---------- Matemática ---------- */
+const fact=n=>n<=1?1:n*fact(n-1);
+function C(n,p){if(p<0||p>n)return 0;p=Math.min(p,n-p);let r=1;for(let i=1;i<=p;i++)r=r*(n-p+i)/i;return Math.round(r);}
+const fmt=x=>x.toLocaleString('pt-BR');
+function expand(n,p){
+  const k=Math.min(p,n-p),other=Math.max(p,n-p);
+  const L=[`C(${n},${p}) = ${n}! / (${p}! · ${n-p}!)`];
+  if(k===0){L.push('= 1');return L;}
+  const num=[],den=[];
+  for(let i=0;i<k;i++)num.push(n-i);
+  for(let i=k;i>=1;i--)den.push(i);
+  const N=num.reduce((a,b)=>a*b,1),D=fact(k);
+  L.push(`= (${num.join('·')}) / (${den.join('·')})   ← corta o ${other}!`);
+  L.push(`= ${fmt(N)} / ${fmt(D)}`);
+  L.push(`= ${fmt(N/D)}`);
+  return L;
+}
+const rand=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const sab=k=>k===1?'1 sabor':`${k} sabores`;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const chalk=lines=>`<div class="chalk">${lines.map((l,i)=>`<div class="${i===lines.length-1?'res':''}">${esc(l)}</div>`).join('')}</div>`;
+
+/* ---------- Pizza SVG ---------- */
+function pizzaSVG(ids,rot=0,slots=0){
+  const cx=100,cy=100,R=78;
+  let s=`<svg viewBox="0 0 200 200" role="img" aria-label="Pizza ${ids.map(i=>FB[i].n).join(' e ')||'vazia'}">`;
+  s+=`<circle cx="100" cy="100" r="96" fill="#d9954c" stroke="#2b1a12" stroke-width="5"/><circle cx="100" cy="100" r="${R+5}" fill="#d0432a"/><circle cx="100" cy="100" r="${R}" fill="#f7d77e"/>`;
+  const k=slots||ids.length;
+  for(let i=0;i<k;i++){
+    const a0=(rot+i*360/k-90)*Math.PI/180,a1=(rot+(i+1)*360/k-90)*Math.PI/180;
+    const f=ids[i]?FB[ids[i]]:null;
+    if(k===1){if(f)s+=`<circle cx="100" cy="100" r="${R}" fill="${f.c}" opacity=".35"/>`;}
+    else{
+      const x0=cx+R*Math.cos(a0),y0=cy+R*Math.sin(a0),x1=cx+R*Math.cos(a1),y1=cy+R*Math.sin(a1);
+      s+=`<path d="M100 100 L${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 ${(a1-a0)>Math.PI?1:0} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}Z" fill="${f?f.c:'#f7d77e'}" opacity="${f?.4:1}" stroke="#2b1a12" stroke-width="2.5" ${f?'':'stroke-dasharray="6 5"'}/>`;
+    }
+    if(f){
+      if(k===1)[[0,0],[34,-28],[-30,30],[30,32],[-34,-24]].forEach(([dx,dy])=>{s+=`<text x="${100+dx}" y="${100+dy}" font-size="26" text-anchor="middle" dominant-baseline="central">${f.e}</text>`;});
+      else{
+        const am=(a0+a1)/2,r1=R*0.55,r2=R*0.3;
+        [[r1,am],[r2+12,am-0.54*Math.PI/k],[r2+12,am+0.54*Math.PI/k]].forEach(([rr,aa])=>{s+=`<text x="${(cx+rr*Math.cos(aa)).toFixed(1)}" y="${(cy+rr*Math.sin(aa)).toFixed(1)}" font-size="${k>3?18:24}" text-anchor="middle" dominant-baseline="central">${f.e}</text>`;});
+      }
+    }
+  }
+  return s+'</svg>';
+}
+
+
+const COLORS=['#e8432e','#3d8fe0','#46b84c','#8d5bd6','#f08c1a','#14a5a5','#d63a8c','#7a6a58'];
+const S={sound:true,used:new Set(),lastNames:[],turn:0,view:'home',inGame:false,
+  tut:{step:0,t1:null,sel:[],served:[],dup:false,fstep:0,test:null,testHint:false}};
+let TIMER=null,lastTick=-1;
+const $=id=>document.getElementById(id);
+const stage=$('stage');
+const reduced=()=>window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* ---------- Som ---------- */
+let AC=null;
+function tone(freqs,dur=.14,type='triangle',gap=.11){
+  if(!S.sound)return;
+  try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    freqs.forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;const t=AC.currentTime+i*gap;
+      g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.15,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+      o.connect(g).connect(AC.destination);o.start(t);o.stop(t+dur+.03);});
+  }catch(e){}
+}
+const sGood=()=>tone([523,659,784,1047],.16,'square',.09);
+const sBad=()=>tone([300,220,160],.22,'sawtooth',.15);
+const sTick=()=>tone([880],.05,'square');
+const sClick=()=>tone([660],.04,'square');
+
+/* ---------- Efeitos ---------- */
+function stamp(text,good){
+  const d=document.createElement('div');d.className='stamp '+(good?'good':'bad');d.textContent=text;document.body.appendChild(d);setTimeout(()=>d.remove(),1150);
+  if(reduced())return;
+  if(good){const em=['🍕','🧀','🍅','⭐','🌽','🍄'];for(let i=0;i<26;i++){const c=document.createElement('span');c.className='confetti';c.textContent=pick(em);
+    c.style.left=Math.random()*96+'vw';c.style.animationDuration=(1.4+Math.random()*1.4)+'s';c.style.animationDelay=(Math.random()*.4)+'s';document.body.appendChild(c);setTimeout(()=>c.remove(),3400);}}
+  else{stage.classList.remove('shake');void stage.offsetWidth;stage.classList.add('shake');}
+}
+function plus(team,pts){
+  const el=$('sc'+team);if(!el)return;const r=el.getBoundingClientRect();
+  const d=document.createElement('div');d.className='plus';d.textContent='+'+pts;d.style.left=(r.left+r.width/2-20)+'px';d.style.top=(r.top+r.height)+'px';
+  document.body.appendChild(d);setTimeout(()=>d.remove(),1250);
+}
+
+
+/* ---------- Blocos reaproveitados ---------- */
+function clientHTML(name,face,text){
+  return `<div class="client"><div><div class="avatar" aria-hidden="true">${face}</div><div class="who">${esc(name)}</div></div><div class="bubble">${text}</div></div>`;
+}
+function menuHTML(ids,marks){
+  return `<div class="menu"><h3>📋 Cardápio do dia · ${ids.length} sabores</h3><div class="tiles">${ids.map(id=>`<div class="tile ${marks[id]||''}"><span class="em">${FB[id].e}</span>${FB[id].n}</div>`).join('')}</div></div>`;
+}
+function padHTML(kind){
+  return `<form data-f="${kind}"><input class="screen" id="pin" inputmode="numeric" autocomplete="off" placeholder="?" aria-label="Resposta" maxlength="9"></form>
+  <div class="pad">${[1,2,3,4,5,6,7,8,9].map(d=>`<button data-a="key" data-v="${d}" data-k="${kind}">${d}</button>`).join('')}
+    <button class="del" data-a="key" data-v="del" data-k="${kind}" aria-label="Apagar">⌫</button><button data-a="key" data-v="0" data-k="${kind}">0</button><button class="ok" data-a="key" data-v="ok" data-k="${kind}" aria-label="Responder">OK</button></div>`;
+}
+
+
+/* ---------- Tutorial ---------- */
+function tutTop(){
+  const t=S.tut;
+  return `<div class="tbar"><span class="ribbon">Tutorial · Aprendiz de Pizzaiolo</span><div class="dots" aria-label="Passo ${t.step+1} de 4">${[0,1,2,3].map(i=>`<b class="${i<t.step?'ok':i===t.step?'on':''}"></b>`).join('')}</div></div>`;
+}
+function tut(){
+  S.view='tut';S.inGame=false;renderScore();
+  const t=S.tut;let body='';
+  if(t.step===0){
+    body=`<div class="panel"><h2>Estas pizzas são diferentes?</h2>
+    <p>Os dois pizzaiolos usaram <b>Calabresa</b> e <b>Mussarela</b>, só que em ordens diferentes.</p>
+    <div class="pair"><div class="pz">${pizzaSVG(['cal','mus'],0)}<span>1º 🌭 depois 🧀</span></div><span class="vs">VS</span><div class="pz">${pizzaSVG(['mus','cal'],90)}<span>1º 🧀 depois 🌭</span></div></div>
+    <div class="row center">
+      <button class="btn red" data-a="t1" data-v="dif" ${t.t1?'disabled':''}>São diferentes</button>
+      <button class="btn green" data-a="t1" data-v="igual" ${t.t1?'disabled':''}>É a mesma pizza</button>
+    </div>
+    ${t.t1?`<div class="msg ${t.t1==='igual'?'good':'bad'}"><h3>${t.t1==='igual'?'Isso aí!':'Olha de novo!'}</h3>
+      <p>É a <b>mesma pizza</b>: mesmos sabores, só em outra ordem. Quando a ordem não muda o resultado, estamos contando <b>combinações simples</b>.</p></div>
+      <div class="row" style="margin-top:18px"><button class="btn" data-a="tnext">Próximo ▶</button></div>`:''}
+    </div>`;
+  }
+  if(t.step===1){
+    const menu=['mus','tom','cal','fra'],done=t.served.length;
+    body=`<div class="panel"><h2>Monte todas as pizzas!</h2>
+    <p><b>4 sabores</b> no cardápio, <b>2 sabores</b> por pizza. Escolha dois e sirva. Quantas pizzas diferentes existem?</p>
+    <div class="build">
+      <div>
+        <div class="tiles" style="margin-top:12px">${menu.map(id=>`<button class="tile ${t.sel.includes(id)?'sel':''}" data-a="tsel" data-id="${id}" aria-pressed="${t.sel.includes(id)}"><span class="em">${FB[id].e}</span>${FB[id].n}</button>`).join('')}</div>
+        <div class="row" style="margin-top:18px">
+          <button class="btn green" data-a="tserve" ${t.sel.length===2&&done<6?'':'disabled'}>Servir 🍕</button>
+          <button class="btn white sm" data-a="tclear" ${t.sel.length?'':'disabled'}>Limpar</button>
+        </div>
+        ${t.dup?`<div class="msg bad"><h3>Essa já saiu do forno!</h3><p>Mesmos sabores = mesma pizza, em qualquer ordem. Tente outra dupla.</p></div>`:''}
+      </div>
+      <div class="board"><div class="peel">${pizzaSVG(t.sel,0,2)}</div><span class="counter">${done} pizza${done===1?'':'s'}</span></div>
+    </div>
+    <h3 style="margin-top:20px;font-size:1.2em">Balcão de entregas</h3>
+    <div class="served">${t.served.map(p=>`<div class="mini">${pizzaSVG(p)}<span>${FB[p[0]].n} + ${FB[p[1]].n}</span></div>`).join('')}</div>
+    ${done===6?`<div class="msg good"><h3>6 pizzas! Não existe uma sétima.</h3><p>Com 4 sabores e 2 por pizza existem só 6 pizzas diferentes. Com 10 sabores, montar na mão ia demorar muito. Bora aprender o atalho!</p></div>
+      <div class="row" style="margin-top:18px"><button class="btn" data-a="tnext">Próximo ▶</button></div>`:
+      `<div class="row" style="margin-top:14px"><button class="btn white sm" data-a="tall">Mostrar todas</button></div>`}
+    </div>`;
+  }
+  if(t.step===2){
+    const F=[
+      `<p>Com <b>n</b> sabores no cardápio e pizzas de <b>p</b> sabores:</p><p style="margin-top:6px;font-size:1.2em">C(n,p) = <span class="frac"><span>n!</span><span>p! · (n − p)!</span></span></p>`,
+      `<p><b>n!</b> (n fatorial) é multiplicar de n até 1.</p><div>4! = 4 · 3 · 2 · 1 = 24</div><div>2! = 2 · 1 = 2</div>`,
+      `<p>Divide por <b>p!</b> porque a mesma pizza pode ser montada de p! jeitos (lembra do Passo 1?) e todos contam como uma só.</p>`,
+      `<p>No nosso cardápio: n = 4 e p = 2.</p><div>C(4,2) = 4! / (2! · 2!) = 24 / 4 = <span style="color:var(--amarelo)">6</span></div>`,
+      `<p style="font-size:1.2em"><span style="color:var(--amarelo)">6</span>: exatamente as pizzas que você montou! ✓</p>`
+    ];
+    body=`<div class="panel"><h2>O atalho do pizzaiolo</h2>
+      <div class="fsteps">${F.slice(0,t.fstep+1).map((h,i)=>`<div class="fstep"><span class="n">${i+1}</span><div class="chalk">${h}</div></div>`).join('')}</div>
+      <div class="row">${t.fstep<F.length-1?`<button class="btn" data-a="fnext">Mostrar mais ▼</button>`:`<button class="btn" data-a="tnext">Próximo ▶</button>`}</div>
+    </div>`;
+  }
+  if(t.step===3){
+    body=`<div class="panel"><h2>Cliente de treino</h2>
+      <div class="qgrid" style="margin-top:14px">
+        <div>${clientHTML('Professora Lúcia','👩‍🏫',`"Vocês têm <strong>5 sabores</strong>. Quero uma pizza de <strong>2 sabores</strong>. Quantas pizzas diferentes dá para fazer?"`)}
+          ${menuHTML(['mus','tom','cal','fra','mil'],{})}</div>
+        <div>
+          ${t.test==='ok'?`<div class="msg good" style="margin-top:0"><div class="res-head"><h3>Acertou: 10!</h3></div>${chalk(expand(5,2))}</div>
+            <div class="row" style="margin-top:18px"><button class="btn red" data-a="setup">Abrir a pizzaria ▶</button></div>`:`
+          ${padHTML('test')}
+          ${t.test==='bad'?`<div class="msg bad"><h3>Quase!</h3><p>Tente de novo com n = 5 e p = 2.</p></div>`:''}
+          ${t.testHint?`<div class="hint"><span class="em">💡</span><span>C(5,2) = 5! / (2! · 3!). Corta o 3!: sobra (5 · 4) / (2 · 1).</span></div>`:`<div class="row" style="margin-top:14px"><button class="btn white sm" data-a="thint">💡 Dica</button></div>`}`}
+        </div>
+      </div>
+    </div>`;
+  }
+  stage.innerHTML=tutTop()+body;
+}
+
+
+/* ---------- Geradores de pedidos ---------- */
+function customer(){let c;do{c=pick(CLIENTS);}while(S.lastNames.includes(c[0]));S.lastNames=[...S.lastNames.slice(-5),c[0]];return c;}
+function menuOf(n){return shuffle(FL).slice(0,n).map(f=>f.id);}
+function uniq(fn){for(let i=0;i<60;i++){const q=fn();if(!S.used.has(q.key)){S.used.add(q.key);return q;}}return fn();}
+
+function genSimple(){return uniq(()=>{
+  const n=rand(4,8),p=rand(2,Math.min(4,n-2));
+  return {key:`s${n}-${p}`,kind:'num',menu:menuOf(n),marks:{},
+    text:`"Vocês têm <strong>${n} sabores</strong>. Quero uma pizza de <strong>${p} sabores</strong>. Quantas pizzas diferentes dá para fazer?"`,
+    answer:C(n,p),hint:`Use a fórmula com n = ${n} (sabores do cardápio) e p = ${p} (sabores na pizza).`,
+    intro:`${n} sabores, ${p} por pizza, e a ordem não importa: combinação simples.`,lines:expand(n,p)};
+});}
+
+const RKINDS=['must1','without1','withWithout','must2','without2'];
+function genRestr(){return uniq(()=>{
+  const kind=RKINDS[S.turn%RKINDS.length];
+  let n,p,ans,text,intro,lines,marks={},hint,menu;
+  if(kind==='must1'){n=rand(5,9);p=rand(2,4);menu=menuOf(n);const X=FB[menu[0]];marks[X.id]='must';ans=C(n-1,p-1);
+    text=`"Pizza de <strong>${p} sabores</strong>, mas <strong>tem que ter ${X.n}</strong>! Vocês têm ${n} sabores."`;
+    hint=`${X.n} já está na pizza. Quantos sabores faltam escolher, e entre quantos?`;
+    intro=`${X.n} já está garantida. Falta escolher ${sab(p-1)} entre os outros ${n-1}.`;lines=expand(n-1,p-1);}
+  if(kind==='without1'){n=rand(5,9);p=rand(2,Math.min(4,n-2));menu=menuOf(n);const X=FB[menu[0]];marks[X.id]='out';ans=C(n-1,p);
+    text=`"Pizza de <strong>${p} sabores</strong>, mas <strong>sem ${X.n}</strong>, por favor! Vocês têm ${n} sabores."`;
+    hint=`Se ${X.n} não pode entrar, com quantos sabores o cardápio fica?`;
+    intro=`Sem ${X.n}, sobram ${n-1} sabores. Escolhemos ${p} entre eles.`;lines=expand(n-1,p);}
+  if(kind==='withWithout'){n=rand(6,9);p=rand(2,4);menu=menuOf(n);const X=FB[menu[0]],Y=FB[menu[1]];marks[X.id]='must';marks[Y.id]='out';ans=C(n-2,p-1);
+    text=`"Pizza de <strong>${p} sabores</strong>, <strong>com ${X.n}</strong> e <strong>sem ${Y.n}</strong>. Vocês têm ${n} sabores."`;
+    hint=`${X.n} já entra e ${Y.n} sai do cardápio. Sobram quantos sabores para escolher o resto?`;
+    intro=`${X.n} já entra e ${Y.n} sai. Sobram ${n-2} sabores para escolher ${sab(p-1)}.`;lines=expand(n-2,p-1);}
+  if(kind==='must2'){n=rand(6,9);p=rand(3,4);menu=menuOf(n);const X=FB[menu[0]],Y=FB[menu[1]];marks[X.id]='must';marks[Y.id]='must';ans=C(n-2,p-2);
+    text=`"Pizza de <strong>${p} sabores</strong>. <strong>Tem que ter ${X.n} e ${Y.n}</strong>! Vocês têm ${n} sabores."`;
+    hint=`Dois sabores já estão garantidos. Quantos faltam escolher, e entre quantos?`;
+    intro=`${X.n} e ${Y.n} já estão garantidos. Falta escolher ${sab(p-2)} entre os outros ${n-2}.`;lines=expand(n-2,p-2);}
+  if(kind==='without2'){n=rand(6,9);p=rand(2,3);menu=menuOf(n);const X=FB[menu[0]],Y=FB[menu[1]];marks[X.id]='out';marks[Y.id]='out';ans=C(n-2,p);
+    text=`"Pizza de <strong>${p} sabores</strong>, mas <strong>sem ${X.n} e sem ${Y.n}</strong>. Vocês têm ${n} sabores."`;
+    hint=`Dois sabores saem do cardápio. Com quantos ele fica?`;
+    intro=`Sem ${X.n} e ${Y.n}, sobram ${n-2} sabores. Escolhemos ${p} entre eles.`;lines=expand(n-2,p);}
+  return {key:`${kind}${n}-${p}`,kind:'num',menu,marks,text,answer:ans,hint,intro,lines};
+});}
+
+const AKINDS=['big','compare','complement'];
+function genAvesso(){return uniq(()=>{
+  const kind=AKINDS[S.turn%AKINDS.length];
+  if(kind==='big'){const n=rand(8,10),p=n-rand(2,3);
+    return {key:`b${n}-${p}`,kind:'num',menu:menuOf(n),marks:{},
+      text:`"Pizza GIGANTE! Quero <strong>${p} sabores</strong> dos <strong>${n}</strong> do cardápio. Quantas pizzas diferentes existem?"`,
+      answer:C(n,p),hint:`Escolher ${p} para entrar é o mesmo que escolher os ${n-p} que ficam de fora: C(${n},${p}) = C(${n},${n-p}).`,
+      intro:`Escolher ${p} para entrar = escolher ${n-p} para ficar de fora. A conta fica bem menor:`,
+      lines:[`C(${n},${p}) = C(${n},${n-p})   ← avesso`,...expand(n,n-p)]};}
+  if(kind==='complement'){const n=rand(6,10),p=rand(Math.floor(n/2)+1,n-1);
+    return {key:`c${n}-${p}`,kind:'num',menu:menuOf(n),marks:{},
+      text:`"Tenho <strong>${n} sabores</strong> e vou escolher <strong>${p}</strong>. Completa pra mim: C(${n},${p}) = C(${n}, <strong>?</strong>)"`,
+      answer:n-p,hint:`Quando você escolhe ${p} sabores para entrar, também está escolhendo quais ficam de fora.`,
+      intro:`Escolher ${p} para entrar deixa ${n-p} de fora, então C(${n},${p}) = C(${n},${n-p}).`,
+      lines:[`C(${n},${p}) = ${fmt(C(n,p))}`,`C(${n},${n-p}) = ${fmt(C(n,n-p))}`,`? = ${n} − ${p} = ${n-p}`]};}
+  const n=rand(7,10);let p1;do{p1=rand(2,n-2);}while(p1*2===n);
+  const eq=Math.random()<.5;let p2;
+  if(eq)p2=n-p1;else{do{p2=rand(1,n-1);}while(p2===p1||p2===n-p1);}
+  const A=customer()[0],B=customer()[0];const a=C(n,p1),b=C(n,p2);
+  const ans=a>b?0:a<b?1:2;
+  return {key:`k${n}-${p1}-${p2}`,kind:'choice',menu:menuOf(n),marks:{},
+    text:`"Aqui tem <strong>${n} sabores</strong>. ${A} quer pizza de <strong>${sab(p1)}</strong> e ${B} quer de <strong>${sab(p2)}</strong>. Quem tem MAIS opções?"`,
+    options:[A,B,'Empate!'],answer:ans,
+    hint:`Lembre do avesso: C(${n},${p1}) = C(${n},${n-p1}). Se ${p1} + ${p2} = ${n}, o que acontece?`,
+    intro:eq?`${p1} + ${p2} = ${n}: escolher ${p1} para entrar é o mesmo que escolher ${p2} para ficar de fora. Empate!`:`Calculando as duas:`,
+    lines:[`${A}: C(${n},${p1}) = ${fmt(a)}`,`${B}: C(${n},${p2}) = ${fmt(b)}`,ans===2?'Empate!':`Mais opções: ${ans===0?A:B}`]};
+});}
+
+
+const INTROS=[
+  {d:'Cada cliente diz quantos sabores tem no cardápio e quantos quer na pizza. Use C(n,p)!',ex:['Exemplo: 5 sabores, pizza de 3','C(5,3) = 5! / (3! · 2!) = 10']},
+  {d:'"Tem que ter" já coloca um sabor na pizza. "Sem" tira um sabor do cardápio. Ajuste n e p antes de calcular.',ex:['Tem que ter Queijo (6 sabores, pizza de 3)','→ faltam 2 entre 5: C(5,2) = 10','Sem Cebola (6 sabores, pizza de 3)','→ sobram 5 sabores: C(5,3) = 10']},
+  {d:'Escolher os sabores que entram é o mesmo que escolher os que ficam de fora. C(n,p) = C(n, n−p).',ex:['8 sabores, pizza de 6','= escolher os 2 que ficam de fora','C(8,6) = C(8,2) = 28']},
+  {d:'O dono da pizzaria quer jogar na Mega-Sena! Todos os times respondem ao mesmo tempo. Acertou, ganhou 30.',ex:['Na Mega-Sena a ordem dos números não importa:','é combinação simples!']}
+];
+
+/* ---------- Utilidades ---------- */
+const FOPTS=['360','1.000.000','50.063.860','60.000.000'];
+function genFinal(){return {kind:'choice',menu:[],marks:{},
+  text:`"Quero jogar na Mega-Sena! São <strong>60 números</strong> e cada aposta escolhe <strong>6</strong>. A ordem não importa. Quantos jogos diferentes existem?"`,
+  options:FOPTS,answer:2,hint:'C(60,6) = 60! / (6! · 54!). Corte o 54! de cima e de baixo.',
+  intro:'Escolher 6 números entre 60, sem importar a ordem, é C(60,6). Com uma aposta, a chance de ganhar é de 1 em 50.063.860!',lines:expand(60,6)};}
+const lsGet=k=>{try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}};
+const lsSet=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
+function toast(msg){const t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,3500);}
+function stopTimer(){if(TIMER){clearInterval(TIMER);TIMER=null;}}
+function go(fn){stopTimer();fn();window.scrollTo({top:0});}
+function renderScore(){renderHUD();}
+function clockHTML(d){return d?`<div class="clock" id="clock" role="timer" aria-label="Tempo restante"><span id="tnum">${d}</span></div>`:'';}
+function runClock(startedAt,duration,onEnd){
+  stopTimer();if(!duration||!startedAt)return;lastTick=-1;
+  const tick=()=>{const left=Math.max(0,Math.ceil(duration-(B.now()-startedAt)/1000));
+    const ck=$('clock'),n=$('tnum');if(ck){ck.style.setProperty('--p',left/duration*100);ck.classList.toggle('low',left<=10);}if(n)n.textContent=left;
+    if(left<=5&&left>0&&left!==lastTick){lastTick=left;sTick();}
+    if(left<=0){stopTimer();onEnd&&onEnd();}};
+  tick();TIMER=setInterval(tick,250);
+}
+function mapHTML(cur){
+  const N=[['🎓','Tutorial'],['1','Simples'],['2','Exigentes'],['3','Avesso'],['★','Mega-Sena']];
+  return `<div class="map">${N.map(([ic,l],i)=>`${i?'<div class="path"></div>':''}<div class="node ${i<cur?'done':i===cur?'cur':''}"><i>${i<cur?'✓':ic}</i><span>${l}</span></div>`).join('')}</div>`;
+}
+function teamList(teams,scores){
+  return Object.entries(teams||{}).filter(([u,t])=>t&&t.name)
+    .sort((a,b)=>(a[1].joinedAt||0)-(b[1].joinedAt||0)||a[0].localeCompare(b[0]))
+    .map(([uid,t],i)=>({uid,name:t.name,color:COLORS[i%COLORS.length],score:(scores||{})[uid]||0}));
+}
+const tavC=c=>`<span class="tav" style="background:${c}">🍕</span>`;
+const genCode=()=>Array.from({length:4},()=>'ABCDEFGHJKMNPQRSTUVWXYZ'[Math.floor(Math.random()*23)]).join('');
+const playerURL=code=>(window.PZ_URL||location.origin+location.pathname)+'?sala='+code;
+const volHTML=()=>`<div class="menu"><h3>🎟️ Volante da Mega-Sena</h3><div class="vol">${Array.from({length:60},(_,i)=>`<span>${String(i+1).padStart(2,'0')}</span>`).join('')}</div></div>`;
+function loadQR(){return new Promise((res,rej)=>{if(window.QRCode)return res();const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';s.onload=()=>res();s.onerror=rej;document.head.appendChild(s);});}
+function podiumHTML(r){
+  const order=r.length>=3?[1,0,2]:r.length===2?[1,0]:r.length?[0]:[];
+  const H_=[200,150,110],COL=['var(--amarelo)','#c9d1d9','#d99062'];
+  return `<div class="podium">${order.map(k=>{const t=r[k];return `<div class="pcol">${`<span class="tav" style="background:${t.color}">🍕</span>`}<span class="nm">${esc(t.name)}</span><div class="block" style="height:${H_[k]}px;background:${COL[k]}"><span class="pos">${k+1}º</span><span class="pt">${t.score}</span></div></div>`;}).join('')}</div><div class="base-line"></div>
+  ${r.length>3?`<div class="others">${r.slice(3).map((t,k)=>`<div><span>${k+4}º ${esc(t.name)}</span><span>${t.score}</span></div>`).join('')}</div>`:''}`;
+}
+const REFLEXAO=`<div class="chalk" style="max-width:680px;margin:0 auto">
+  <p style="color:var(--amarelo);font-size:1.15em">Hora de pensar:</p>
+  <p>1. Por que a ordem dos sabores não importa na pizza?</p>
+  <p>2. Por que C(6,4) e C(6,2) dão o mesmo resultado?</p>
+  <p>3. Com "tem que ter queijo", por que n e p diminuem 1 cada?</p>
+  <p>4. Onde mais aparece combinação simples no dia a dia?</p></div>`;
+
+/* ---------- Conexão: Firebase ou modo de teste local ---------- */
+const FB_V='10.12.2';
+async function makeBackend(cfg){
+  if(cfg&&cfg.apiKey){
+    const base=`https://www.gstatic.com/firebasejs/${FB_V}/`;
+    const [app,au,db]=await Promise.all([import(base+'firebase-app.js'),import(base+'firebase-auth.js'),import(base+'firebase-database.js')]);
+    const a=app.initializeApp(cfg);const auth=au.getAuth(a);
+    let user=await new Promise(r=>{const u=au.onAuthStateChanged(auth,x=>{u();r(x);});});
+    if(!user)user=(await au.signInAnonymously(auth)).user;
+    const d=db.getDatabase(a);let offset=0;
+    db.onValue(db.ref(d,'.info/serverTimeOffset'),s=>{offset=s.val()||0;});
+    const r=p=>db.ref(d,p);
+    return {mode:'firebase',uid:user.uid,TS:db.serverTimestamp(),now:()=>Date.now()+offset,
+      set:(p,v)=>db.set(r(p),v),update:(p,v)=>db.update(r(p),v),remove:p=>db.remove(r(p)),
+      get:async p=>(await db.get(r(p))).val(),on:(p,cb)=>db.onValue(r(p),s=>cb(s.val()),e=>toast('Sem permissão: '+e.message))};
+  }
+  // Modo de teste local: várias abas do mesmo navegador compartilham os dados
+  const KEY='pizzaria-teste-local';
+  const read=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{};}catch(e){return {};}};
+  let cache=read();const subs=new Set();
+  const parts=p=>p.split('/').filter(Boolean);
+  const getAt=p=>{let o=cache;for(const k of parts(p)){if(o==null||typeof o!=='object')return null;o=o[k];}return o===undefined?null:o;};
+  const setAt=(p,v)=>{const ks=parts(p);let o=cache;for(let i=0;i<ks.length-1;i++){if(typeof o[ks[i]]!=='object'||o[ks[i]]===null)o[ks[i]]={};o=o[ks[i]];}
+    const last=ks[ks.length-1];if(v===null||v===undefined)delete o[last];else o[last]=v;};
+  const ts=v=>{if(v&&typeof v==='object'){if(v['.sv']==='timestamp')return Date.now();const out=Array.isArray(v)?[]:{};for(const k in v){const x=ts(v[k]);if(x!==undefined&&x!==null)out[k]=x;}return out;}return v;};
+  let pending=false;
+  const notify=()=>{pending=false;subs.forEach(s=>{const j=JSON.stringify(getAt(s.p));if(j!==s.last){s.last=j;s.cb(JSON.parse(j));}});};
+  const commit=()=>{try{localStorage.setItem(KEY,JSON.stringify(cache));}catch(e){}if(!pending){pending=true;setTimeout(notify,0);}};
+  window.addEventListener('storage',e=>{if(e.key===KEY){cache=read();notify();}});
+  let uid=window.PZ_UID||null;if(!uid)try{uid=sessionStorage.getItem('pz-uid');}catch(e){}
+  if(!uid){uid='local-'+Math.random().toString(36).slice(2,10);try{sessionStorage.setItem('pz-uid',uid);}catch(e){}}
+  return {mode:'local',uid,TS:{'.sv':'timestamp'},now:()=>Date.now(),
+    set:async(p,v)=>{cache=read();setAt(p,ts(v));commit();},
+    update:async(p,obj)=>{cache=read();for(const k in obj)setAt(p+'/'+k,ts(obj[k]));commit();},
+    remove:async p=>{cache=read();setAt(p,null);commit();},
+    get:async p=>{cache=read();return JSON.parse(JSON.stringify(getAt(p)));},
+    on:(p,cb)=>{const s={p,cb,last:undefined};subs.add(s);setTimeout(()=>{if(!subs.has(s))return;const j=JSON.stringify(getAt(p));s.last=j;cb(JSON.parse(j));},0);return ()=>subs.delete(s);}};
+}
+let B=null,ROLE=null;
+
+/* ---------- Placar no topo ---------- */
+function renderHUD(){
+  const el=$('score');
+  if(ROLE==='host'&&H.code&&S.view!=='home'){
+    el.innerHTML=teamList(H.teams,H.scores).map(t=>`<div class="sc" id="sc${t.uid}">${tavC(t.color)}<span>${esc(t.name)}</span><b>${t.score}</b></div>`).join('');
+  }else if(ROLE==='player'&&P.code&&P.teams[B.uid]){
+    const list=teamList(P.teams,P.scores),me=list.find(t=>t.uid===B.uid);
+    const pos=[...list].sort((a,b)=>b.score-a.score).findIndex(t=>t.uid===B.uid)+1;
+    el.innerHTML=`<div class="sc on" id="sc${B.uid}">${tavC(me.color)}<span>${esc(me.name)}</span><b>${me.score}</b><span>· ${pos}º</span></div>`;
+  }else el.innerHTML='';
+}
+
+/* ---------- Início ---------- */
+function home(){
+  S.view='home';ROLE=null;renderHUD();
+  const saved=lsGet('pz-host');
+  stage.innerHTML=`<section class="title"><div>
+    <div class="logo"><small>Pizzaria</small><h1>Combina<span>tória</span></h1></div>
+    <p class="tag">Cada time joga no próprio celular, todos ao mesmo tempo. O telão mostra os pedidos, o tempo e o placar ao vivo.</p>
+    <div class="sign"><span>C(n,p) =</span><span class="frac"><span>n!</span><span>p! · (n − p)!</span></span></div>
+    <div class="row">
+      <button class="btn red" data-a="create">📺 Criar sala</button>
+      <button class="btn white" data-a="joinscreen">📱 Entrar com código</button>
+      <button class="btn white" data-a="manual">📖 Manual</button>
+    </div>
+    ${saved&&saved.code&&saved.status!=='end'?`<div class="row" style="margin-top:18px"><button class="btn green sm" data-a="resume-host">↺ Retomar a sala ${esc(saved.code)}</button></div>`:''}
+  </div><div class="bigpizza" aria-hidden="true">${pizzaSVG(['mus','cal','tom','azt','cog','pim'],0)}</div></section>`;
+}
+
+/* =================== TELÃO (professor) =================== */
+const H={code:null,perPhase:3,timer:60,phase:0,qi:0,used:[],cur:null,result:null,bonus:[],status:'lobby',
+  teams:{},scores:{},answers:{},hints:{},unsub:[],runsub:[],busy:false,autoRev:false};
+function saveHost(){lsSet('pz-host',{code:H.code,perPhase:H.perPhase,timer:H.timer,phase:H.phase,qi:H.qi,used:H.used,cur:H.cur,result:H.result,bonus:H.bonus,status:H.status});}
+const salaPath=()=>`salas/${H.code}`;
+async function hUpd(obj){try{await B.update(salaPath(),obj);}catch(e){toast('Erro ao salvar: '+e.message);throw e;}}
+function hostListen(){
+  H.unsub.forEach(u=>u());
+  H.unsub=[
+    B.on(salaPath()+'/teams',v=>{H.teams=v||{};renderHUD();refreshTeamList();refreshAnswerStatus();refreshPlacar();}),
+    B.on(salaPath()+'/scores',v=>{H.scores=v||{};renderHUD();refreshPlacar();})
+  ];
+}
+function listenRound(){
+  H.runsub.forEach(u=>u());const k=H.cur.key;
+  H.runsub=[
+    B.on(`${salaPath()}/answers/${k}`,v=>{H.answers=v||{};refreshAnswerStatus();}),
+    B.on(`${salaPath()}/hints/${k}`,v=>{H.hints=v||{};refreshAnswerStatus();})
+  ];
+}
+function hostScreen(){({lobby:hLobby,intro:hIntro,question:hQuestion,reveal:hReveal,end:hEnd}[H.status]||hLobby)();}
+async function createRoom(){
+  let code;
+  for(let i=0;i<10;i++){code=genCode();const m=await B.get(`salas/${code}/meta`);if(!m)break;}
+  Object.assign(H,{code,phase:0,qi:0,used:[],cur:null,result:null,bonus:[],status:'lobby',teams:{},scores:{}});
+  try{await B.set(`salas/${code}/meta`,{hostId:B.uid,status:'lobby',phase:0,createdAt:B.TS});}
+  catch(e){toast('Não foi possível criar a sala: '+e.message);return;}
+  ROLE='host';saveHost();hostListen();go(hLobby);
+}
+async function resumeHost(){
+  const s=lsGet('pz-host');if(!s)return;
+  const m=await B.get(`salas/${s.code}/meta`).catch(()=>null);
+  if(!m||m.hostId!==B.uid){toast('Essa sala não existe mais ou foi criada em outro aparelho.');lsSet('pz-host',null);go(home);return;}
+  Object.assign(H,s);ROLE='host';hostListen();
+  if(H.cur&&(H.status==='question'||H.status==='reveal'))listenRound();
+  go(hostScreen);
+}
+function hLobby(){
+  S.view='lobby';ROLE='host';renderHUD();
+  const url=playerURL(H.code);
+  stage.innerHTML=`<div class="lobby">
+    <div class="panel joincard"><span class="ribbon">Entre na pizzaria!</span>
+      <div class="qr" id="qr" aria-label="QR code para entrar no jogo"></div>
+      <p style="font-weight:700">Aponte a câmera do celular ou acesse:</p><span class="url">${esc(url)}</span>
+      <p style="font-weight:700;margin-top:6px">Código da sala</p><div class="code">${H.code}</div></div>
+    <div class="panel"><h2>Times na sala <span id="tcount"></span></h2><div class="tlist" id="tlist"></div>
+      <div style="display:grid;gap:16px">
+        <div><div class="opt-l">Pedidos por fase</div><div class="seg">${[2,3,4].map(n=>`<button data-a="perphase" data-v="${n}" class="${H.perPhase===n?'on':''}">${n}</button>`).join('')}</div></div>
+        <div><div class="opt-l">Tempo por pedido</div><div class="seg">${[[30,'30s'],[45,'45s'],[60,'60s'],[90,'90s'],[0,'∞']].map(([v,l])=>`<button data-a="timer" data-v="${v}" class="${H.timer===v?'on':''}" aria-label="${v?v+' segundos':'Sem tempo'}">${l}</button>`).join('')}</div></div>
+      </div>
+      <div class="row" style="margin-top:22px"><button class="btn red" data-a="startgame">Começar ▶</button><button class="btn white sm" data-a="tut">🎓 Tutorial com a turma</button></div>
+    </div></div>`;
+  refreshTeamList();
+  loadQR().then(()=>{const el=$('qr');if(el&&!el.firstChild)new QRCode(el,{text:url,width:220,height:220,colorDark:'#2b1a12',colorLight:'#ffffff'});})
+    .catch(()=>{const el=$('qr');if(el)el.textContent='Use o código abaixo';});
+}
+function refreshTeamList(){
+  const el=$('tlist');if(!el)return;const list=teamList(H.teams,H.scores);
+  el.innerHTML=list.map(t=>`<div class="trow">${tavC(t.color)}<span class="nm">${esc(t.name)}</span><button class="mini-b x" data-a="kick" data-u="${t.uid}" aria-label="Remover ${esc(t.name)}">✕</button></div>`).join('')
+    ||'<div class="empty">Esperando os times entrarem pelo celular...</div>';
+  const c=$('tcount');if(c)c.textContent=list.length?`(${list.length})`:'';
+}
+function refreshPlacar(){
+  const el=$('placar');if(!el)return;
+  el.innerHTML=teamList(H.teams,H.scores).map(t=>`<div class="trow">${tavC(t.color)}<span class="nm">${esc(t.name)}</span><button class="mini-b" data-a="adj" data-u="${t.uid}" data-v="-5">−5</button><span class="sc-n">${t.score}</span><button class="mini-b" data-a="adj" data-u="${t.uid}" data-v="5">+5</button></div>`).join('')||'<div class="empty">Nenhum time na sala.</div>';
+}
+async function startGame(){
+  const list=teamList(H.teams,H.scores);
+  if(!list.length){toast('Espere pelo menos um time entrar.');return;}
+  Object.assign(H,{phase:0,qi:0,used:[],cur:null,result:null,bonus:[],status:'intro'});
+  const upd={'meta/status':'intro','meta/phase':0,answers:null,hints:null,results:null,round:null};
+  list.forEach(t=>upd['scores/'+t.uid]=0);
+  saveHost();await hUpd(upd);go(hIntro);
+}
+function hIntro(){
+  S.view='intro';renderHUD();
+  const Ph=PHASES[H.phase],I=INTROS[H.phase];
+  stage.innerHTML=`<div class="lvl">${mapHTML(H.phase+1)}
+    <div class="big">${H.phase<3?'Fase '+Ph.num:'Final!'}</div>
+    <div class="sub">${Ph.name} · ${Ph.pts} pts por acerto</div>
+    <p class="desc">${I.d} ${H.phase<3?`São ${H.perPhase} pedidos. `:''}Os primeiros a acertar ganham bônus de rapidez: +5, +3 e +1.</p>
+    <div class="chalk">${I.ex.map(l=>`<div>${esc(l)}</div>`).join('')}</div>
+    <div class="row center"><button class="btn red" data-a="callclient">${H.phase===3?'Ver o desafio ▶':'Chamar cliente ▶'}</button></div>
+    <div class="panel" style="max-width:640px;margin:28px auto 0;text-align:left"><div class="opt-l">Placar (ajuste manual)</div><div class="tlist" id="placar" style="margin:8px 0 0"></div></div>
+  </div>`;
+  refreshPlacar();
+}
+async function callClient(){
+  if(H.busy)return;H.busy=true;
+  try{
+    const Ph=PHASES[H.phase];let q,c;
+    if(H.phase===3){q=genFinal();c=['Seu Raimundo, o dono','👨‍🍳'];}
+    else{S.used=new Set(H.used);S.turn=H.qi;q=[genSimple,genRestr,genAvesso][H.phase]();H.used=[...S.used];c=customer();}
+    const key=`${H.phase}-${H.qi}`;
+    const pub={kind:q.kind,text:q.text,menu:q.menu||[],marks:q.marks||{},options:q.options||null,hint:q.hint,who:c[0],face:c[1],
+      pts:Ph.pts,phase:H.phase,idx:H.qi,total:H.phase===3?1:H.perPhase,vol:H.phase===3};
+    H.cur={key,answer:q.answer,intro:q.intro,lines:q.lines,kind:q.kind,options:q.options||null,pub,duration:H.timer,startedAt:null};
+    H.answers={};H.hints={};H.result=null;H.bonus=[];H.autoRev=false;H.status='question';
+    await hUpd({round:{key,pub,startedAt:B.TS,duration:H.timer},'meta/status':'question','meta/round':key,'meta/phase':H.phase});
+    H.cur.startedAt=await B.get(salaPath()+'/round/startedAt')||B.now();
+    saveHost();listenRound();go(hQuestion);
+  }finally{H.busy=false;}
+}
+function hQuestion(){
+  S.view='question';renderHUD();
+  const c=H.cur,pub=c.pub,Ph=PHASES[H.phase];
+  stage.innerHTML=`<div class="qtop"><span class="ribbon">${H.phase<3?`Fase ${Ph.num} · Pedido ${pub.idx+1} de ${pub.total}`:'Final · Mega-Sena'}</span><span class="turn" style="background:var(--roxo)">Todos respondem!</span>${clockHTML(c.duration)}</div>
+  <div class="qgrid"><div>${clientHTML(pub.who,pub.face,pub.text)}${pub.vol?volHTML():menuHTML(pub.menu,pub.marks)}</div>
+    <div class="panel"><div class="row" style="justify-content:space-between"><div class="opt-l" style="margin:0">Respostas dos times</div><span class="bigcount" id="acount"></span></div>
+      ${pub.kind==='choice'?`<div class="opts" style="margin-top:12px">${pub.options.map((o,i)=>`<div class="opt c${i}"><span class="k">${'ABCD'[i]}</span>${esc(o)}</div>`).join('')}</div>`:''}
+      <div class="astat" id="astat"></div>
+      <div class="row" style="margin-top:18px"><button class="btn red" data-a="reveal">Revelar agora ▶</button><span style="font-weight:700">Vale ${pub.pts} pts + rapidez</span></div>
+    </div></div>`;
+  refreshAnswerStatus();
+  runClock(c.startedAt,c.duration,()=>reveal());
+}
+function refreshAnswerStatus(){
+  const el=$('astat');if(!el||!H.cur||S.view!=='question')return;
+  const list=teamList(H.teams,H.scores);const n=list.filter(t=>H.answers[t.uid]).length;
+  el.innerHTML=list.map(t=>{const a=H.answers[t.uid];return `<div class="achip ${a?'done':''}">${tavC(t.color)}<span>${esc(t.name)}<small>${a?'✓ respondeu':'pensando...'}${H.hints[t.uid]?' · 💡 dica':''}</small></span></div>`;}).join('')
+    ||'<div class="empty">Nenhum time na sala.</div>';
+  const ac=$('acount');if(ac)ac.textContent=`${n}/${list.length}`;
+  if(H.status==='question'&&list.length&&n===list.length&&!H.autoRev){H.autoRev=true;setTimeout(()=>reveal(),900);}
+}
+async function reveal(){
+  if(H.status!=='question'||H.busy)return;H.busy=true;
+  try{
+    stopTimer();
+    const c=H.cur,base=c.pub.pts;
+    const deadline=c.duration?(c.startedAt+c.duration*1000+2000):Infinity;
+    const list=teamList(H.teams,H.scores);
+    const correct=list.map(t=>[t.uid,H.answers[t.uid]]).filter(([u,a])=>a&&a.v===c.answer&&a.at<=deadline).sort((x,y)=>x[1].at-y[1].at).map(([u])=>u);
+    const SPEED=[5,3,1],awards={},upd={};
+    list.forEach(t=>{
+      const a=H.answers[t.uid],late=!!(a&&a.at>deadline),ok=!!a&&!late&&a.v===c.answer;
+      const rank=ok?correct.indexOf(t.uid):-1,hint=!!H.hints[t.uid];
+      const pts=ok?Math.max(0,base+(SPEED[rank]||0)-(hint?5:0)):0;
+      awards[t.uid]={v:a?a.v:-1,ok,pts,rank,hint,late};
+      upd['scores/'+t.uid]=(H.scores[t.uid]||0)+pts;
+    });
+    const shown=c.kind==='num'?fmt(c.answer):c.options[c.answer];
+    H.result={answer:c.answer,shown,intro:c.intro,lines:c.lines,awards};
+    upd['results/'+c.key]=H.result;upd['meta/status']='reveal';
+    H.status='reveal';saveHost();
+    await hUpd(upd);
+    go(hReveal);
+    const any=correct.length>0;any?sGood():sBad();stamp(any?'REVELADO!':'NINGUÉM ACERTOU',any);
+    correct.forEach(u=>plus(u,awards[u].pts));
+  }finally{H.busy=false;}
+}
+function hReveal(){
+  S.view='reveal';renderHUD();
+  const c=H.cur,r=H.result,pub=c.pub,Ph=PHASES[H.phase];
+  const list=teamList(H.teams,H.scores).map(t=>({...t,aw:r.awards[t.uid]||{v:-1,ok:false,pts:0,rank:-1}})).sort((a,b)=>b.aw.pts-a.aw.pts);
+  const ans=v=>v==null||v===-1?'sem resposta':pub.kind==='choice'?esc(pub.options[v]??v):fmt(v);
+  const last=H.phase===3,endPhase=H.phase<3&&H.qi+1>=H.perPhase;
+  stage.innerHTML=`<div class="qtop"><span class="ribbon">${H.phase<3?`Fase ${Ph.num} · Pedido ${pub.idx+1} de ${pub.total}`:'Final · Mega-Sena'}</span><span class="turn" style="background:var(--verde)">Resposta: ${esc(r.shown)}</span></div>
+  <div class="qgrid"><div><div class="msg good" style="margin-top:0"><h3>Como resolver</h3><p style="margin:6px 0 10px">${r.intro}</p>${chalk(r.lines)}</div></div>
+    <div class="panel"><div class="opt-l">Resultado da rodada</div>
+      <div class="tlist" style="margin-bottom:0">${list.map(t=>`<div class="rrow ${t.aw.ok?'ok':'no'}">${tavC(t.color)}<span class="nm">${esc(t.name)}<small>${ans(t.aw.v)}${t.aw.late?' (fora do tempo)':''}${t.aw.ok&&t.aw.rank>=0&&t.aw.rank<3?` · ⚡ ${t.aw.rank+1}º a acertar`:''}${t.aw.hint?' · 💡 dica':''}</small></span><span class="p">+${t.aw.pts}</span><button class="btn green sm bon" data-a="hbonus" data-u="${t.uid}" ${H.bonus.includes(t.uid)?'disabled':''}>🗣️ +5</button></div>`).join('')||'<div class="empty">Nenhum time.</div>'}</div>
+      <p style="font-size:.85em;margin-top:10px;font-weight:600">🗣️ +5 quando o time explica a conta em voz alta.</p>
+      <div class="row" style="margin-top:16px"><button class="btn red" data-a="next">${last?'Ver o pódio 🏆':endPhase?'Fim da fase ▶':'Próximo cliente ▶'}</button></div>
+    </div></div>`;
+}
+async function nextStep(){
+  if(H.busy)return;
+  H.qi++;
+  if(H.phase===3){H.status='end';saveHost();await hUpd({'meta/status':'end'});go(hEnd);return;}
+  if(H.qi>=H.perPhase){H.phase++;H.qi=0;H.status='intro';saveHost();await hUpd({'meta/status':'intro','meta/phase':H.phase});go(hIntro);return;}
+  saveHost();callClient();
+}
+function hEnd(){
+  S.view='end';renderHUD();
+  const r=teamList(H.teams,H.scores).sort((a,b)=>b.score-a.score);
+  const tie=r.length>1&&r[0].score===r[1].score;
+  stage.innerHTML=`<div class="lvl"><div class="big">${tie?'Empate!':'🏆 Fim de jogo!'}</div>
+    <div class="sub">${!r.length?'Nenhum time jogou':tie?'Rodada relâmpago para desempatar!':`${esc(r[0].name)} venceu!`}</div>
+    ${podiumHTML(r)}
+    ${tie?`<p class="desc" style="margin-bottom:18px">O mediador fala um pedido, por exemplo C(7,3). O primeiro time a acertar vence.</p>`:''}
+    ${REFLEXAO}
+    <div class="row center"><button class="btn red" data-a="restart">Nova partida</button><button class="btn white" data-a="closeroom">Fechar a sala</button></div></div>`;
+  if(!tie&&r.length)setTimeout(()=>stamp('PARABÉNS!',true),300);
+}
+function hTut(){
+  tut();
+  stage.insertAdjacentHTML('afterbegin',`<div class="row" style="margin-bottom:14px"><button class="btn white sm" data-a="lobby">◀ Voltar para a sala ${esc(H.code||'')}</button></div>`);
+}
+
+/* =================== CELULAR (time) =================== */
+const P={code:null,meta:null,round:null,result:null,teams:{},scores:{},myAns:null,myHint:false,timeUp:false,screenKey:'',roundKey:null,joined:false,unsub:[],rsub:[]};
+const pPath=()=>`salas/${P.code}`;
+function pJoin(code='',msg=''){
+  S.view='join';ROLE='player';renderHUD();
+  const saved=lsGet('pz-player')||{};
+  stage.innerHTML=`<div class="player"><div class="panel" style="display:grid;gap:16px">
+    <div class="logo" style="text-align:center"><small>Pizzaria</small><h1 style="font-size:2.6em">Combina<span>tória</span></h1></div>
+    ${msg?`<p class="err">${esc(msg)}</p>`:''}
+    <form data-f="join" style="display:grid;gap:14px">
+      <label class="field">Código da sala<input id="jcode" class="codein" maxlength="4" autocomplete="off" autocapitalize="characters" value="${esc(code)}" required></label>
+      <label class="field">Nome do time<input id="jname" maxlength="24" autocomplete="off" value="${esc(saved.name||'')}" placeholder="Ex.: Time Calabresa" required></label>
+      <p class="err" id="jerr"></p>
+      <button class="btn red" type="submit">Entrar ▶</button>
+    </form></div></div>`;
+}
+async function doJoin(){
+  const code=$('jcode').value.trim().toUpperCase(),name=$('jname').value.trim().slice(0,24),err=$('jerr');
+  if(code.length!==4||!name){err.textContent='Preencha o código de 4 letras e o nome do time.';return;}
+  err.textContent='Entrando...';
+  try{
+    const m=await B.get(`salas/${code}/meta`);
+    if(!m){err.textContent='Sala não encontrada. Confira o código no telão.';return;}
+    const old=await B.get(`salas/${code}/teams/${B.uid}`);
+    await B.set(`salas/${code}/teams/${B.uid}`,{name,joinedAt:old&&old.joinedAt?old.joinedAt:B.TS});
+    lsSet('pz-player',{code,name});P.code=code;P.joined=false;sClick();playerListen();
+  }catch(e){err.textContent='Não deu para entrar: '+e.message;}
+}
+function playerListen(){
+  ROLE='player';P.unsub.forEach(u=>u());P.rsub.forEach(u=>u());P.screenKey='';P.roundKey=null;
+  stage.innerHTML=`<div class="player wait"><div class="spin-s">${pizzaSVG(['mus'],0)}</div><p style="font-weight:700">Conectando...</p></div>`;
+  P.unsub=[
+    B.on(pPath()+'/meta',v=>{P.meta=v;if(!v){leaveRoom('A sala foi encerrada.');return;}pRender();}),
+    B.on(pPath()+'/round',v=>{
+      P.round=v;
+      if(v&&v.key!==P.roundKey){
+        P.roundKey=v.key;P.myAns=null;P.myHint=false;P.result=null;P.timeUp=false;
+        P.rsub.forEach(u=>u());const k=v.key;
+        P.rsub=[
+          B.on(`${pPath()}/answers/${k}/${B.uid}`,a=>{if(P.roundKey===k&&a){P.myAns=a;pRender();}}),
+          B.on(`${pPath()}/hints/${k}/${B.uid}`,h=>{if(P.roundKey===k&&h){P.myHint=true;pRender();}}),
+          B.on(`${pPath()}/results/${k}`,r=>{if(P.roundKey===k){P.result=r;pRender();}})
+        ];
+      }
+      pRender();
+    }),
+    B.on(pPath()+'/teams',v=>{
+      P.teams=v||{};
+      if(P.joined&&!P.teams[B.uid]){leaveRoom('Seu time foi removido da sala.');return;}
+      if(P.teams[B.uid])P.joined=true;
+      renderHUD();if(S.view==='plobby')refreshPTeams();pRefreshPos();
+    }),
+    B.on(pPath()+'/scores',v=>{P.scores=v||{};renderHUD();pRefreshPos();})
+  ];
+}
+function leaveRoom(msg){P.unsub.forEach(u=>u());P.rsub.forEach(u=>u());P.unsub=[];P.rsub=[];const c=P.code;P.joined=false;P.meta=null;go(()=>pJoin(c,msg));}
+function pRender(force){
+  const m=P.meta;if(!m||ROLE!=='player')return;
+  let st=m.status;
+  if((st==='question'||st==='reveal')&&(!P.round||P.round.key!==m.round))st='loading';
+  let key=st+'|'+(m.phase??'');
+  if(st==='question')key+='|'+P.round.key+(P.myAns?'a':'')+(P.myHint?'h':'')+(P.timeUp?'t':'');
+  if(st==='reveal')key+='|'+P.round.key+(P.result?'r':'');
+  if(!force&&key===P.screenKey)return;P.screenKey=key;
+  const keep=$('pin')?.value;stopTimer();
+  ({lobby:pLobby,intro:pIntro,question:pQuestion,reveal:pReveal,end:pEnd,loading:pLoading}[st]||pLobby)();
+  if(keep&&$('pin'))$('pin').value=keep;
+}
+function pRefreshPos(){
+  if(S.view==='pend'){pEnd(true);return;}
+  const el=$('ppos');if(!el)return;const list=teamList(P.teams,P.scores).sort((a,b)=>b.score-a.score);el.textContent=`Vocês estão em ${list.findIndex(t=>t.uid===B.uid)+1||'—'}º lugar`;
+}
+function pLoading(){S.view='pload';stage.innerHTML=`<div class="player wait"><div class="spin-s">${pizzaSVG(['tom'],0)}</div><p style="font-weight:700">Carregando...</p></div>`;}
+function refreshPTeams(){const el=$('ptlist');if(!el)return;el.innerHTML=teamList(P.teams,P.scores).map(t=>`<div class="trow">${tavC(t.color)}<span class="nm">${esc(t.name)}${t.uid===B.uid?' (vocês)':''}</span></div>`).join('');}
+function pLobby(){
+  S.view='plobby';
+  stage.innerHTML=`<div class="player wait"><span class="ribbon">Sala ${esc(P.code)}</span>
+    <div class="bigpizza">${pizzaSVG(['mus','tom','cal','fra'],0)}</div>
+    <h2 style="font-size:2em" class="stroke-w">Vocês estão dentro!</h2>
+    <p class="desc" style="margin:0">Aguardem o professor começar o jogo e olhem para o telão.</p>
+    <div class="panel" style="width:100%;text-align:left"><div class="opt-l">Times na sala</div><div class="tlist" id="ptlist" style="margin-bottom:0"></div></div></div>`;
+  refreshPTeams();
+}
+function pIntro(){
+  S.view='pintro';const ph=P.meta.phase||0,Ph=PHASES[ph],I=INTROS[ph];
+  stage.innerHTML=`<div class="player lvl">${mapHTML(ph+1)}<div class="big" style="font-size:3.4em">${ph<3?'Fase '+Ph.num:'Final!'}</div>
+    <div class="sub">${Ph.name} · ${Ph.pts} pts</div><p class="desc">${I.d}</p>
+    <div class="chalk">${I.ex.map(l=>`<div>${esc(l)}</div>`).join('')}</div>
+    <p class="desc">👀 Olhem para o telão. O pedido aparece aqui no celular.</p></div>`;
+}
+function pQuestion(){
+  S.view='pq';const r=P.round,pub=r.pub,menu=pub.menu||[],marks=pub.marks||{};
+  const head=`<div class="qtop"><span class="ribbon">${pub.phase<3?`Pedido ${pub.idx+1} de ${pub.total}`:'Final'}</span>${clockHTML(r.duration)}</div>`;
+  const shownAns=v=>pub.kind==='choice'?esc(pub.options[v]):fmt(v);
+  if(P.myAns){
+    stage.innerHTML=`<div class="player">${head}<div class="panel wait"><h2>Resposta enviada!</h2><p style="font-weight:700">Vocês responderam: <span class="hl2">${shownAns(P.myAns.v)}</span></p><div class="spin-s">${pizzaSVG(['mus','tom'],0)}</div><p>⏳ Aguardem os outros times e olhem para o telão.</p></div></div>`;
+  }else if(P.timeUp){
+    stage.innerHTML=`<div class="player">${head}<div class="panel wait"><h2>O tempo acabou!</h2><p>Aguardem a resposta no telão.</p></div></div>`;
+  }else{
+    stage.innerHTML=`<div class="player">${head}${clientHTML(pub.who,pub.face,pub.text)}${pub.vol?'':menuHTML(menu,marks)}
+      <div class="panel" style="margin-top:20px">${pub.kind==='num'?padHTML('ans'):`<div class="opts">${pub.options.map((o,i)=>`<button class="opt c${i}" data-a="pchoice" data-v="${i}"><span class="k">${'ABCD'[i]}</span>${esc(o)}</button>`).join('')}</div>`}
+      ${P.myHint?`<div class="hint"><span class="em">💡</span><span>${esc(pub.hint)}</span></div>`:`<div class="row" style="margin-top:16px"><button class="btn white sm" data-a="phint">💡 Dica (−5)</button><span style="font-weight:700">Vale ${pub.pts} pts + rapidez</span></div>`}
+      </div></div>`;
+  }
+  runClock(r.startedAt,r.duration,P.myAns?null:()=>{P.timeUp=true;pRender();});
+}
+function pSubmit(v){
+  const r=P.round;if(!r||P.myAns||isNaN(v))return;
+  if(r.duration&&B.now()>r.startedAt+r.duration*1000){P.timeUp=true;pRender();return;}
+  const k=r.key;P.myAns={v};sClick();pRender();
+  B.set(`${pPath()}/answers/${k}/${B.uid}`,{v,at:B.TS}).catch(e=>{if(P.roundKey===k){P.myAns=null;pRender(true);}toast('A resposta não foi enviada: '+e.message);});
+}
+function pHint(){
+  const r=P.round;if(!r||P.myHint||P.myAns)return;const k=r.key;P.myHint=true;pRender();
+  B.set(`${pPath()}/hints/${k}/${B.uid}`,true).catch(()=>{});
+}
+function pReveal(){
+  S.view='pr';const r=P.result,pub=P.round.pub;
+  if(!r){pLoading();return;}
+  const aw=(r.awards||{})[B.uid];
+  const list=teamList(P.teams,P.scores).sort((a,b)=>b.score-a.score);const pos=list.findIndex(t=>t.uid===B.uid)+1;
+  const shownAns=v=>pub.kind==='choice'?esc(pub.options[v]):fmt(v);
+  const answered=aw&&aw.v!=null&&aw.v!==-1;
+  const head=!aw?`<div class="msg good" style="margin-top:0"><h3>Resposta: ${esc(r.shown)}</h3></div>`:
+    `<div class="msg ${aw.ok?'good':'bad'}" style="margin-top:0"><div class="res-head"><h3>${aw.ok?'Acertaram!':answered?'Erraram!':'Sem resposta'}</h3><span class="pts">+${aw.pts}</span></div>
+      <p>${answered?`Vocês: <b>${shownAns(aw.v)}</b>${aw.late?' (fora do tempo)':''} · `:''}Certa: <b>${esc(r.shown)}</b></p>
+      ${aw.ok&&aw.rank>=0&&aw.rank<3?`<p>⚡ ${aw.rank+1}º time a acertar: +${[5,3,1][aw.rank]} de rapidez!</p>`:''}${aw.ok&&aw.hint?'<p>💡 −5 pela dica</p>':''}</div>`;
+  stage.innerHTML=`<div class="player">${head}<p style="margin:14px 0 10px;font-weight:600">${r.intro}</p>${chalk(r.lines||[])}
+    <div class="panel" style="margin-top:18px;text-align:center"><span class="opt-l" id="ppos">Vocês estão em ${pos||'—'}º lugar</span></div></div>`;
+  if(aw){aw.ok?sGood():sBad();stamp(aw.ok?'ACERTOU!':'ERROU!',aw.ok);}
+}
+function pEnd(quiet){
+  S.view='pend';
+  const list=teamList(P.teams,P.scores).sort((a,b)=>b.score-a.score);const pos=list.findIndex(t=>t.uid===B.uid)+1;const me=list[pos-1];
+  stage.innerHTML=`<div class="player lvl"><div class="big" style="font-size:3.2em">${pos===1?'🏆 Campeões!':'Fim de jogo!'}</div>
+    <div class="sub">${me?`${esc(me.name)}: ${pos}º lugar · ${me.score} pts`:'Obrigado por jogar!'}</div>
+    ${podiumHTML(list)}${REFLEXAO}</div>`;
+  if(pos===1&&!quiet)setTimeout(()=>stamp('PARABÉNS!',true),300);
+}
+
+/* ---------- Manual ---------- */
+function manual(){
+  stopTimer();S.view='manual';
+  stage.innerHTML=`<article class="manual panel">
+    <div class="cover"><span class="ribbon">Manual de instruções</span><h1 style="margin-top:14px">Pizzaria Combinatória</h1><p>Jogo de combinação simples · até 8 times, cada um no seu celular · 30 a 50 minutos</p></div>
+    <section><h2><span class="k">1</span>Objetivo</h2>
+      <p>Cada time é uma pizzaria. Os clientes fazem pedidos e todos os times calculam, ao mesmo tempo, quantas pizzas diferentes dá para montar. Acertar vale pontos, e quem acerta primeiro ganha bônus. Vence o time com mais pontos.</p></section>
+    <section><h2><span class="k">2</span>O conteúdo: combinação simples</h2>
+      <p>Combinação simples conta de quantas maneiras podemos escolher <b>p</b> elementos de um grupo de <b>n</b> quando a <b>ordem não importa</b>. Na pizza, Calabresa + Mussarela é a mesma pizza que Mussarela + Calabresa.</p>
+      <div class="chalk"><div>C(n,p) = n! / (p! · (n − p)!)</div><p>n = sabores do cardápio · p = sabores da pizza · n! = n · (n−1) · … · 1</p><div class="res">Exemplo: C(4,2) = 24 / 4 = 6 pizzas</div></div>
+      <p style="margin-top:10px"><b>Propriedade da Fase 3:</b> C(n,p) = C(n, n−p). Escolher os sabores que entram é o mesmo que escolher os que ficam de fora.</p></section>
+    <section><h2><span class="k">3</span>Componentes</h2>
+      <ul><li><b>Telão:</b> um computador ligado ao projetor, que cria a sala e mostra pedidos, tempo e placar.</li>
+        <li><b>Um celular por time</b>, com internet, para responder.</li>
+        <li>Folha de rascunho e lápis para cada time.</li>
+        <li><b>Material concreto:</b> discos de papel com os sabores e uma base de pizza de papelão, para montar as pizzas no tutorial.</li>
+        <li>Um mediador (professor ou aluno do grupo), que controla o telão.</li></ul></section>
+    <section><h2><span class="k">4</span>Preparação</h2>
+      <ol><li>No computador do projetor, abra o site e clique em <b>Criar sala</b>.</li>
+        <li>Cada time aponta a câmera do celular para o QR code (ou digita o endereço e o código de 4 letras) e escreve o nome do time.</li>
+        <li>Quando todos aparecerem na lista, escolha quantos pedidos cada fase terá e o tempo por pedido.</li>
+        <li>Se quiser, faça o <b>Tutorial com a turma</b> no telão antes de começar.</li></ol></section>
+    <section><h2><span class="k">5</span>Como jogar</h2>
+      <ol><li><b>Tutorial (Aprendiz de Pizzaiolo):</b> a turma descobre que a ordem não importa, monta as 6 pizzas possíveis, aprende a fórmula e atende um cliente de treino.</li>
+        <li><b>Fase 1, Pedidos Simples:</b> aplicação direta de C(n,p).</li>
+        <li><b>Fase 2, Clientes Exigentes:</b> "tem que ter X" vira C(n−1, p−1); "sem X" vira C(n−1, p).</li>
+        <li><b>Fase 3, Pizza do Avesso:</b> pedidos que usam C(n,p) = C(n, n−p).</li>
+        <li><b>Final, Mega-Sena:</b> quantos jogos existem com 6 números entre 60.</li></ol>
+      <p style="margin-top:12px"><b>Em cada pedido:</b> o pedido aparece no telão e em todos os celulares. Cada time faz a conta e responde no celular (só uma vez). Quando todos respondem ou o tempo acaba, o telão revela a resposta, a conta no quadro e os pontos.</p></section>
+    <section><h2><span class="k">6</span>Pontuação</h2>
+      <div class="tbl"><table><thead><tr><th>Situação</th><th>Pontos</th></tr></thead><tbody>
+        <tr><td>Acerto na Fase 1</td><td>+10</td></tr><tr><td>Acerto na Fase 2 ou 3</td><td>+20</td></tr><tr><td>Acerto na Final</td><td>+30</td></tr>
+        <tr><td>1º, 2º e 3º time a acertar (bônus de rapidez)</td><td>+5 / +3 / +1</td></tr>
+        <tr><td>Usar a dica no celular</td><td>−5</td></tr><tr><td>Explicar a conta em voz alta (o mediador marca)</td><td>+5</td></tr>
+        <tr><td>Errar ou não responder a tempo</td><td>0</td></tr></tbody></table></div></section>
+    <section><h2><span class="k">7</span>Fim do jogo</h2>
+      <p>Depois da Final aparece o pódio no telão e a colocação em cada celular. Em caso de empate, o mediador faz uma <b>rodada relâmpago</b>: fala um pedido, como C(7,3), e o primeiro time a acertar vence. Depois, a turma discute as perguntas de reflexão.</p></section>
+    <section><h2><span class="k">8</span>Gabarito</h2>
+      <p>Os pedidos são sorteados a cada partida. O gabarito aparece no telão e nos celulares logo depois de cada pedido, com a conta completa.</p></section>
+    <div class="row" style="margin-top:28px"><button class="btn red" data-a="resume">Voltar ▶</button></div>
+  </article>`;
+}
+
+/* ---------- Tutorial no telão: teste ---------- */
+function submitTest(){
+  const v=parseInt(($('pin')?.value||'').trim(),10);if(isNaN(v))return;
+  if(v===10){S.tut.test='ok';sGood();stamp('ACERTOU!',true);}else{S.tut.test='bad';sBad();stamp('QUASE!',false);}
+  hTut();
+}
+
+/* ---------- Eventos ---------- */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-a]');if(!b||b.disabled)return;
+  const a=b.dataset.a,v=b.dataset.v,t=S.tut;
+  switch(a){
+    case 'home':if(ROLE==='player'&&P.code&&P.meta){pRender(true);break;}go(home);break;
+    case 'manual':if(S.view!=='manual')go(manual);break;
+    case 'resume':
+      if(ROLE==='player'&&P.code&&P.meta){P.screenKey='';pRender(true);}
+      else if(ROLE==='player')go(()=>pJoin(P.code||''));
+      else if(ROLE==='host'&&H.code)go(hostScreen);else go(home);break;
+    case 'sound':S.sound=!S.sound;b.textContent=S.sound?'🔊':'🔇';b.setAttribute('aria-label',S.sound?'Som ligado':'Som desligado');break;
+    case 'full':try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{});}catch(err){}break;
+    case 'create':createRoom();break;
+    case 'joinscreen':go(()=>pJoin(''));break;
+    case 'resume-host':resumeHost();break;
+    case 'kick':B.update(salaPath(),{['teams/'+b.dataset.u]:null,['scores/'+b.dataset.u]:null}).catch(err=>toast(err.message));break;
+    case 'perphase':H.perPhase=+v;saveHost();hLobby();break;
+    case 'timer':H.timer=+v;saveHost();hLobby();break;
+    case 'startgame':startGame();break;
+    case 'lobby':case 'setup':go(hLobby);break;
+    case 'tut':S.tut={step:0,t1:null,sel:[],served:[],dup:false,fstep:0,test:null,testHint:false};go(hTut);break;
+    case 't1':t.t1=v;if(v==='igual'){sGood();stamp('ISSO!',true);}else{sBad();stamp('HMM...',false);}hTut();break;
+    case 'tnext':t.step++;t.dup=false;go(hTut);break;
+    case 'tsel':{sClick();const id=b.dataset.id;t.dup=false;if(t.sel.includes(id))t.sel=t.sel.filter(x=>x!==id);else if(t.sel.length<2)t.sel.push(id);else t.sel=[t.sel[1],id];hTut();break;}
+    case 'tclear':t.sel=[];t.dup=false;hTut();break;
+    case 'tserve':{const key=t.sel.slice().sort().join();if(t.served.some(p=>p.slice().sort().join()===key)){t.dup=true;sBad();stamp('REPETIDA!',false);}else{t.served.push(t.sel.slice());t.dup=false;sGood();if(t.served.length===6)stamp('COMPLETO!',true);}t.sel=[];hTut();break;}
+    case 'tall':{const m=['mus','tom','cal','fra'];t.served=[];for(let i=0;i<4;i++)for(let j=i+1;j<4;j++)t.served.push([m[i],m[j]]);t.sel=[];t.dup=false;hTut();break;}
+    case 'fnext':sClick();t.fstep++;hTut();break;
+    case 'thint':t.testHint=true;hTut();break;
+    case 'key':{const inp=$('pin');if(!inp)break;sClick();
+      if(v==='del')inp.value=inp.value.slice(0,-1);
+      else if(v==='ok'){b.dataset.k==='test'?submitTest():pSubmit(parseInt(inp.value,10));}
+      else if(inp.value.length<9)inp.value+=v;break;}
+    case 'callclient':callClient();break;
+    case 'reveal':reveal();break;
+    case 'hbonus':{const u=b.dataset.u;if(H.bonus.includes(u))break;H.bonus.push(u);saveHost();b.disabled=true;
+      hUpd({['scores/'+u]:(H.scores[u]||0)+5}).then(()=>{plus(u,5);sGood();}).catch(()=>{});break;}
+    case 'adj':{const u=b.dataset.u;hUpd({['scores/'+u]:Math.max(0,(H.scores[u]||0)+(+v))}).catch(()=>{});break;}
+    case 'next':nextStep();break;
+    case 'restart':startGame();break;
+    case 'closeroom':{const c=H.code;H.unsub.forEach(u=>u());H.runsub.forEach(u=>u());B.remove('salas/'+c).catch(()=>{});lsSet('pz-host',null);H.code=null;ROLE=null;go(home);break;}
+    case 'pchoice':pSubmit(+v);break;
+    case 'phint':pHint();break;
+  }
+});
+document.addEventListener('submit',e=>{
+  e.preventDefault();const f=e.target.dataset.f;
+  if(f==='join')doJoin();else if(f==='test')submitTest();else if(f==='ans')pSubmit(parseInt(($('pin')?.value||'').trim(),10));
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='pin')e.target.value=e.target.value.replace(/\D/g,'').slice(0,9);
+  if(e.target.id==='jcode')e.target.value=e.target.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,4);
+});
+
+/* ---------- Partida ---------- */
+(async()=>{
+  stage.innerHTML=`<div class="wait"><div class="spin-s">${pizzaSVG(['mus','cal','tom'],0)}</div><p style="font-weight:700">Abrindo a pizzaria...</p></div>`;
+  let cfg=null;try{cfg=(await import('./config.js')).firebaseConfig;}catch(e){}
+  try{B=await makeBackend(cfg);}
+  catch(e){console.error(e);stage.innerHTML=`<div class="panel"><h2>Não foi possível conectar</h2><p>${esc(e.message||String(e))}</p><p style="margin-top:8px">Confira o arquivo config.js e se o login Anônimo e o Realtime Database estão ativos no Firebase (veja o LEIA-ME).</p></div>`;return;}
+  if(B.mode==='local'&&!window.PZ_PREVIEW)$('banner').innerHTML=`<div class="banner">🧪 <b>Modo de teste local.</b> Só funciona neste computador: abra o jogo de cada time em outra aba do mesmo navegador. Para jogar com celulares, configure o Firebase (veja o LEIA-ME).</div>`;
+  if(window.PZ_JOIN){ROLE='player';go(()=>pJoin(''));return;}
+  const sala=(new URLSearchParams(location.search).get('sala')||'').toUpperCase();
+  if(sala){
+    ROLE='player';const saved=lsGet('pz-player');
+    if(saved&&saved.code===sala){const tm=await B.get(`salas/${sala}/teams/${B.uid}`).catch(()=>null);if(tm){P.code=sala;playerListen();return;}}
+    go(()=>pJoin(sala));
+  }else go(home);
+})();
+</script>
+</body>
+</html>
